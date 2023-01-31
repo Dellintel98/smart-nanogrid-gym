@@ -1,0 +1,33 @@
+Refactor: Refactor code for better readability, efficiency and to remove redundancy
+
+- SmartNanogridEnv:
+    - __init__():
+        - Rename variables to more descriptive names
+        - Write constants with UPPER CASE letters
+        - Clean code and remove redundant lines of code
+        - Add declaration for variables, that are later in code defined, to resolve "Instance attribute Cost_History defined outside __init__"
+    - step():
+        - Rename variables to more descriptive names
+        - Change simulate_clever_control() return object to dictionary for cleaner code, to remove redundancy and be more descriptive
+        - Add line "reward = -results['Total cost']" to remove confusion in return line
+    - reset():
+        - Rename variables to more descriptive names
+        - Remove redundant code
+        - Change code to be more descriptive and to make it more efficient
+    - get_obs():
+        - Change method name to more descriptive get_observations() and set it as private class method with __ prefix
+        - Rename variables to more descriptive names
+        - Format code for better readability
+
+- simulate_clever_control():
+    - Rename variables and change code to be more descriptive
+    - Change return type to dictionary and format comments and code for better readability and for easier access in different department
+    - Rename the method for a better representation of its functionalities from simulate_clever_control() to simulate_central_management_system()
+
+- Simulate_Station():
+    - Rename the method from Simulate_Station() to more descriptive simulate_ev_charging_station()
+    - Rename variables and change code to be more descriptive
+
+- InitialValues_per_day():
+    - Rename method from InitialValues_per_day() to generate_new_values()
+    - Changed return type to dictionary for removing redundant code from SmartNanogridEnv.step()

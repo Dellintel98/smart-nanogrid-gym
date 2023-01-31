@@ -44,7 +44,7 @@ for ep in range(episodes):
     ##########obs = env.reset(0)##########
 
     #DDPG
-    obs=env.reset(reset_flag=0)
+    obs=env.reset(generate_new_initial_values=0)
     done=False
     while not done:
         action, _states = model1.predict(obs)
@@ -54,7 +54,7 @@ for ep in range(episodes):
     final_reward_DDPG[ep] = sum(rewards_list_DDPG)
 
     # PPO
-    obs = env.reset(reset_flag=1)
+    obs = env.reset(generate_new_initial_values=1)
     done = False
     while not done:
         action, _states = model2.predict(obs)
@@ -65,7 +65,7 @@ for ep in range(episodes):
     #RBC case
     ##########obs = env.reset(1)##########
 
-    obs=env.reset(reset_flag=1)
+    obs=env.reset(generate_new_initial_values=1)
     done=False
     while not done:
         # state = obs

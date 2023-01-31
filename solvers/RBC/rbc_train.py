@@ -23,7 +23,7 @@ args = parser.parse_args()
 env = gym.make(args.env)
 
 done=False
-state = env.reset(reset_flag=0)
+state = env.reset(generate_new_initial_values=0)
 rewards_list = []
 while not done:
     action = RBC.select_action(env.env,state)

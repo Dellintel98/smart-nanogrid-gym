@@ -107,7 +107,7 @@ Keep in mind to include [requirements.txt](requirements.txt) for a list of Pytho
 - [Charging_Station_Enviroment.py](/smart_nanogrid_gym/envs/smart_nanogrid_environment.py): Describes the general Electrical Vecicles Charging Station universe.
 
 - [Energy_Calculations.py](/smart_nanogrid_gym/utils/energy_calculations.py): Includes pricing profiles and calculates PV energy production.
-- [Init_Values.py](/smart_nanogrid_gym/utils/initial_values.py): Provides initial values per day related with arrival-departure of EVs and Battery State of Charge.
+- [Init_Values.py](/smart_nanogrid_gym/utils/initial_values_generator.py): Provides initial values per day related with arrival-departure of EVs and Battery State of Charge.
 - [Simulate_Actions3.py](/smart_nanogrid_gym/utils/actions_simulation.py): Demand, next state of battery, energy utilization from PV calculations and reward function.
 - [Simulate_Station3.py](/smart_nanogrid_gym/utils/station_simulation.py): Calculates the leaving time of each car, while also the Battery State of Charge of each car in the station.
 

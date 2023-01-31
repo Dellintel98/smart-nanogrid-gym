@@ -1,1 +1,1 @@
-from Chargym_Charging_Station.envs.Charging_Station_Enviroment import ChargingEnv
+from smart_nanogrid_gym.envs.smart_nanogrid_environment import SmartNanogridEnv

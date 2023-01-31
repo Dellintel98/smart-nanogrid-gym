@@ -2,12 +2,12 @@ import numpy as np
 import scipy.io
 
 def Energy_Calculation(self):
-    days_of_experiment = self.number_of_days
-    current_folder = self.current_folder
-    price_flag = self.price_flag
-    solar_flag = self.solar_flag
+    days_of_experiment = self.NUMBER_OF_DAYS_TO_PREDICT
+    current_folder = self.file_directory_path
+    price_flag = self.CURRENT_PRICE_MODEL
+    solar_flag = self.PV_SYSTEM_AVAILABLE_IN_MODEL
 
-    contents=scipy.io.loadmat(current_folder+'Weather.mat')
+    contents=scipy.io.loadmat(current_folder+'weather.mat')
     x_forecast = contents['mydata']
 
 
@@ -28,7 +28,7 @@ def Energy_Calculation(self):
     count=0
     for ii in range(0,int(days_of_experiment)):
         for jj in range(0,int((60/minutes_of_timestep)*48)):
-            scaling_PV = self.PV_Param['PV_Surface']*self.PV_Param['PV_effic']/1000
+            scaling_PV = self.PV_SYSTEM_PARAMETERS['PV_Surface'] * self.PV_SYSTEM_PARAMETERS['PV_effic'] / 1000
             scaling_sol = 1.5
             xx=solar_radiation[count,0] * scaling_sol * scaling_PV * solar_flag
             Radiation[ii, jj] = solar_radiation[count,0]

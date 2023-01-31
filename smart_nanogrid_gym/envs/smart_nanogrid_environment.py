@@ -6,55 +6,58 @@ import pathlib
 from gym import spaces
 from gym.utils import seeding
 from scipy.io import loadmat, savemat
-from Chargym_Charging_Station.utils import Energy_Calculations
-from Chargym_Charging_Station.utils import Simulate_Station3
-from Chargym_Charging_Station.utils import Init_Values
-from Chargym_Charging_Station.utils import Simulate_Actions3
+from smart_nanogrid_gym.utils import energy_calculations
+from smart_nanogrid_gym.utils import station_simulation
+from smart_nanogrid_gym.utils import initial_values_generator
+from smart_nanogrid_gym.utils import actions_simulation
 import time
 
 
-class ChargingEnv(gym.Env):
-    def __init__(self, price=1, solar=1):
-        # basic_model_parameters
-        self.number_of_cars = 10
-        self.number_of_days = 1
-        self.price_flag = price
-        self.solar_flag = solar
-        self.done = False
-        # EV_parameters
-        EV_capacity = 30
-        charging_effic = 0.91
-        discharging_effic = 0.91
-        charging_rate = 11
-        discharging_rate = 11
-        self.EV_Param = {'charging_effic': charging_effic, 'EV_capacity': EV_capacity,
-                         'discharging_effic': discharging_effic, 'charging_rate': charging_rate,
-                         'discharging_rate': discharging_rate}
+class SmartNanogridEnv(gym.Env):
+    def __init__(self, price_model=1, pv_system_available_in_model=1):
+        self.NUMBER_OF_CHARGERS = 10
+        self.NUMBER_OF_DAYS_TO_PREDICT = 1
+        self.CURRENT_PRICE_MODEL = price_model
+        self.PV_SYSTEM_AVAILABLE_IN_MODEL = pv_system_available_in_model
 
-        # Battery_parameters
-        Battery_Capacity = 20
-        Bcharging_effic = 0.91
-        Bdischarging_effic = 0.91
-        Bcharging_rate = 11
-        Bdischarging_rate = 11
-        self.Bat_Param = {'Battery_Capacity': Battery_Capacity, 'Bcharging_effic': Bcharging_effic,
-                          'Bdischarging_effic': Bdischarging_effic, 'Bcharging_rate': Bcharging_rate,
-                          'Bdischarging_rate': Bdischarging_rate}
+        self.EV_PARAMETERS = {
+            'CAPACITY': 30,
+            'CHARGING EFFICIENCY': 0.91,
+            'DISCHARGING EFFICIENCY': 0.91,
+            'MAX CHARGING POWER': 11,
+            'MAX DISCHARGING POWER': 11
+        }
 
-        # Renewable_Energy
-        PV_Surface = 2.279 * 1.134 * 20
-        PV_effic = 0.21
+        self.BATTERY_PARAMETERS = {
+            'CAPACITY': 20,
+            'CHARGING EFFICIENCY': 0.91,
+            'DISCHARGING EFFICIENCY': 0.91,
+            'MAX CHARGING POWER': 11,
+            'MAX DISCHARGING POWER': 11
+        }
 
-        self.PV_Param = {'PV_Surface': PV_Surface, 'PV_effic': PV_effic}
+        self.PV_SYSTEM_PARAMETERS = {
+            'TOTAL DIMENSIONS': 2.279 * 1.134 * 20,
+            'EFFICIENCY': 0.21
+        }
 
-        # self.current_folder = os.getcwd() + '\\utils\\files\\'
-        self.current_folder = os.path.realpath(os.path.join(os.path.dirname(__file__), '..')) + '\\files\\'
+        self.timestep, self.day = None, None
+        self.initial_simulation_values = None
+        self.info = None
 
-        low = np.array(np.zeros(8+2*self.number_of_cars), dtype=np.float32)
-        high = np.array(np.ones(8+2*self.number_of_cars), dtype=np.float32)
+        self.energy, self.ev_state_of_charge = None, None
+        self.departing_vehicles = None
+        self.grid_energy_per_timestep, self.renewable_energy_utilization_per_timestep = None, None
+        self.total_cost_per_timestep, self.penalty_per_timestep = None, None
+
+        self.simulated_single_day = False
+        self.file_directory_path = os.path.realpath(os.path.join(os.path.dirname(__file__), '..')) + '\\files\\'
+
+        low = np.array(np.zeros(8 + 2 * self.NUMBER_OF_CHARGERS), dtype=np.float32)
+        high = np.array(np.ones(8 + 2 * self.NUMBER_OF_CHARGERS), dtype=np.float32)
         self.action_space = spaces.Box(
             low=-1,
-            high=1, shape=(self.number_of_cars,),
+            high=1, shape=(self.NUMBER_OF_CHARGERS,),
             dtype=np.float32
         )
         self.observation_space = spaces.Box(
@@ -63,74 +66,117 @@ class ChargingEnv(gym.Env):
             dtype=np.float32
         )
 
-        self.seed
-
     def step(self, actions):
 
-        [reward, Grid,Res_wasted,Cost_EV,self.BOC] = Simulate_Actions3.simulate_clever_control(self, actions)
+        results = actions_simulation.simulate_central_management_system(self, actions)
 
-        self.Grid_Evol.append(Grid)
-        self.Res_wasted_evol.append(Res_wasted)
-        self.Penalty_Evol.append(Cost_EV)
-        self.Cost_History.append(reward)
+        self.total_cost_per_timestep.append(results['Total cost'])
+        self.grid_energy_per_timestep.append(results['Grid energy'])
+        self.renewable_energy_utilization_per_timestep.append(results['Utilized renewable energy'])
+        self.penalty_per_timestep.append(results['Insufficiently charged vehicles penalty'])
+        self.ev_state_of_charge = results['EV state of charge']
+
         self.timestep = self.timestep + 1
-        conditions = self.get_obs()
+        observations = self.__get_observations()
+
         if self.timestep == 24:
-            self.done = True
+            self.simulated_single_day = True
             self.timestep = 0
-            Results = {'BOC': self.BOC, 'Grid_Final': self.Grid_Evol, 'RES_wasted' :self.Res_wasted_evol,
-                       'Penalty_Evol':self.Penalty_Evol,
-                       'Renewable': self.Energy['Renewable'],'Cost_History': self.Cost_History}
-            savemat(self.current_folder + '\Results.mat', {'Results': Results})
+            prediction_results = {
+                'SOC': self.ev_state_of_charge,
+                'Grid energy': self.grid_energy_per_timestep,
+                'Utilized renewable energy': self.renewable_energy_utilization_per_timestep,
+                'Penalties': self.penalty_per_timestep,
+                'Available renewable energy': self.energy['Renewable'],
+                'Total cost': self.total_cost_per_timestep
+            }
+            savemat(self.file_directory_path + '\\prediction_results.mat', {'Prediction results': prediction_results})
 
+        reward = -results['Total cost']
         self.info = {}
-        return conditions, -reward, self.done, self.info
 
-    def reset(self, reset_flag=0):
+        return observations, reward, self.simulated_single_day, self.info
+
+    def reset(self, generate_new_initial_values=True):
         self.timestep = 0
         self.day = 1
-        self.done = False
-        Consumed, Renewable, Price, Radiation = Energy_Calculations.Energy_Calculation(self)
-        self.Energy = {'Consumed': Consumed, 'Renewable': Renewable,
-                       'Price': Price, 'Radiation': Radiation}
-        if reset_flag == 0:
-            [BOC, ArrivalT, DepartureT, evolution_of_cars, present_cars] = Init_Values.InitialValues_per_day(self)
-            self.Invalues = {'BOC': BOC, 'ArrivalT': ArrivalT, 'evolution_of_cars': evolution_of_cars,
-                             'DepartureT': DepartureT, 'present_cars': present_cars}
-            savemat(self.current_folder + '\Initial_Values.mat', self.Invalues)
+        self.simulated_single_day = False
+
+        consumed, available_renewable, price, solar_radiation = energy_calculations.Energy_Calculation(self)
+        self.energy = {
+            'Consumed': consumed,
+            'Available renewable': available_renewable,
+            'Price': price,
+            'Solar radiation': solar_radiation
+        }
+
+        if generate_new_initial_values:
+            self.initial_simulation_values = initial_values_generator.generate_new_values(self)
+            savemat(self.file_directory_path + '\\initial_values.mat', self.initial_simulation_values)
         else:
-            contents = loadmat(self.current_folder + '\Initial_Values.mat')
-            self.Invalues = {'BOC': contents['BOC'], 'Arrival': contents['ArrivalT'][0],
-                             'evolution_of_cars': contents['evolution_of_cars'], 'Departure': contents['DepartureT'][0],
-                             'present_cars': contents['present_cars'], 'ArrivalT': [], 'DepartureT': []}
-            for ii in range(self.number_of_cars):
-                self.Invalues['ArrivalT'].append(self.Invalues['Arrival'][ii][0].tolist())
-                self.Invalues['DepartureT'].append(self.Invalues['Departure'][ii][0].tolist())
+            initial_values = loadmat(self.file_directory_path + '\\initial_Values.mat')
 
-        return self.get_obs()
+            arrival_times = initial_values['Arrivals'][0]
+            departure_times = initial_values['Departures'][0]
 
-    def get_obs(self):
+            self.initial_simulation_values = {
+                'SOC': initial_values['SOC'],
+                'Arrivals': [],
+                'Departures': [],
+                'Total vehicles charging': initial_values['Total vehicles charging'],
+                'Charger occupancy': initial_values['Charger occupancy']
+            }
+
+            for charger in range(self.NUMBER_OF_CHARGERS):
+                self.initial_simulation_values['Arrivals'].append(arrival_times[charger][0].tolist())
+                self.initial_simulation_values['Departures'].append(departure_times[charger][0].tolist())
+
+        return self.__get_observations()
+
+    def __get_observations(self):
         if self.timestep == 0:
-            self.Cost_History = []
-            self.Grid_Evol = []
-            self.Res_wasted_evol = []
-            self.Penalty_Evol =[]
-            self.BOC = self.Invalues["BOC"]
+            self.total_cost_per_timestep = []
+            self.grid_energy_per_timestep = []
+            self.renewable_energy_utilization_per_timestep = []
+            self.penalty_per_timestep = []
+            self.ev_state_of_charge = self.initial_simulation_values["SOC"]
 
-        [self.leave, Departure_hour, Battery] = Simulate_Station3.Simulate_Station(self)
+        [self.departing_vehicles, departure_times, vehicles_state_of_charge] = station_simulation.simulate_ev_charging_station(self)
 
-        disturbances = np.array([self.Energy["Radiation"][0, self.timestep] / 1000, self.Energy["Price"][0, self.timestep] / 0.1])
-        predictions = np.concatenate((np.array([self.Energy["Radiation"][0, self.timestep + 1:self.timestep + 4] / 1000]), np.array([self.Energy["Price"][0,self.timestep + 1:self.timestep + 4] / 0.1])), axis=None),
+        disturbances_observation_at_current_timestep = np.array([
+            self.energy["Radiation"][0, self.timestep] / 1000,
+            self.energy["Price"][0, self.timestep] / 0.1
+        ])
 
-        states = np.concatenate((np.array(Battery), np.array(Departure_hour)/24),axis=None)
+        predictions = np.concatenate((
+            np.array([self.energy["Radiation"][0, self.timestep + 1:self.timestep + 4] / 1000]),
+            np.array([self.energy["Price"][0, self.timestep + 1:self.timestep + 4] / 0.1])),
+            axis=None
+        )
 
-        observations = np.concatenate((disturbances,predictions,states),axis=None)
+        states = np.concatenate((
+            np.array(vehicles_state_of_charge),
+            np.array(departure_times)/24),
+            axis=None
+        )
+
+        observations = np.concatenate((
+            disturbances_observation_at_current_timestep,
+            predictions,
+            states),
+            axis=None
+        )
 
         return observations
 
+    def render(self, mode="human"):
+        pass
+
     def seed(self, seed=None):
-        self.np_random, seed = seeding.np_random(seed)
-        return [seed]
+        # self.np_random, seed = seeding.np_random(seed)
+        # return [seed]
+        pass
 
     def close(self):
-        return 0
+        # return 0
+        pass
