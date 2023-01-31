@@ -47,8 +47,8 @@ class ChargingEnv(gym.Env):
 
         self.PV_Param = {'PV_Surface': PV_Surface, 'PV_effic': PV_effic}
 
-        # self.current_folder = os.getcwd() + '\\utils\\Files\\'
-        self.current_folder = os.path.realpath(os.path.join(os.path.dirname(__file__), '..')) + '\\Files\\'
+        # self.current_folder = os.getcwd() + '\\utils\\files\\'
+        self.current_folder = os.path.realpath(os.path.join(os.path.dirname(__file__), '..')) + '\\files\\'
 
         low = np.array(np.zeros(8+2*self.number_of_cars), dtype=np.float32)
         high = np.array(np.ones(8+2*self.number_of_cars), dtype=np.float32)

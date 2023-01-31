@@ -5,7 +5,7 @@ import gym
 import numpy as np
 import os
 import argparse
-from Solvers.RBC.RBC import RBC
+from solvers.RBC.rbc import RBC
 
 from stable_baselines3 import DDPG, PPO
 import time
