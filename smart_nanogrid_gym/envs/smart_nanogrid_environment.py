@@ -67,7 +67,6 @@ class SmartNanogridEnv(gym.Env):
         )
 
     def step(self, actions):
-
         results = actions_simulation.simulate_central_management_system(self, actions)
 
         self.total_cost_per_timestep.append(results['Total cost'])
@@ -108,10 +107,10 @@ class SmartNanogridEnv(gym.Env):
             self.initial_simulation_values = initial_values_generator.generate_new_values(self)
             savemat(self.file_directory_path + '\\initial_values.mat', self.initial_simulation_values)
         else:
-            initial_values = loadmat(self.file_directory_path + '\\initial_Values.mat')
+            initial_values = loadmat(self.file_directory_path + '\\initial_values.mat')
 
-            arrival_times = initial_values['Arrivals'][0]
-            departure_times = initial_values['Departures'][0]
+            arrival_times = initial_values['Arrivals']
+            departure_times = initial_values['Departures']
 
             self.initial_simulation_values = {
                 'SOC': initial_values['SOC'],
@@ -122,8 +121,17 @@ class SmartNanogridEnv(gym.Env):
             }
 
             for charger in range(self.NUMBER_OF_CHARGERS):
-                self.initial_simulation_values['Arrivals'].append(arrival_times[charger][0].tolist())
-                self.initial_simulation_values['Departures'].append(departure_times[charger][0].tolist())
+                if arrival_times.shape == (1, 10):
+                    arrivals = arrival_times[0][charger][0]
+                    departures = departure_times[0][charger][0]
+                elif arrival_times.shape == (10, 3):
+                    arrivals = arrival_times[charger]
+                    departures = departure_times[charger]
+                else:
+                    raise Exception("Initial values loaded from initial_values.mat have wrong shape.")
+
+                self.initial_simulation_values['Arrivals'].append(arrivals.tolist())
+                self.initial_simulation_values['Departures'].append(departures.tolist())
 
         return self.__get_observations()
 
