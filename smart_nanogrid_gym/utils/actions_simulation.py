@@ -17,10 +17,13 @@ def simulate_central_management_system(self, actions):
     # Calculation of demand based on actions
     # Calculation of actions for cars
     for charger in range(self.NUMBER_OF_CHARGERS):
-        if actions[charger] >= 0:
-            max_charging_energy = min([10, (1-soc[charger, hour]) * self.EV_PARAMETERS['CAPACITY']])
+        if charger_occupancy[charger, hour] != 0:
+            if actions[charger] >= 0:
+                max_charging_energy = min([10, (1-soc[charger, hour]) * self.EV_PARAMETERS['CAPACITY']])
+            else:
+                max_charging_energy = min([10, soc[charger, hour] * self.EV_PARAMETERS['CAPACITY']])
         else:
-            max_charging_energy = min([10, soc[charger, hour] * self.EV_PARAMETERS['CAPACITY']])
+            max_charging_energy = 0
 
         charging_power[charger] = 100*actions[charger]/100*max_charging_energy
 
