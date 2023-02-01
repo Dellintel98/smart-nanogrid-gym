@@ -102,13 +102,7 @@ class SmartNanogridEnv(gym.Env):
         self.day = 1
         self.simulated_single_day = False
 
-        consumed, available_renewable, price, solar_radiation = energy_calculations.Energy_Calculation(self)
-        self.energy = {
-            'Consumed': consumed,
-            'Available renewable': available_renewable,
-            'Price': price,
-            'Solar radiation': solar_radiation
-        }
+        self.energy = energy_calculations.get_energy(self)
 
         if generate_new_initial_values:
             self.initial_simulation_values = initial_values_generator.generate_new_values(self)
