@@ -14,24 +14,25 @@ def generate_new_values(self):
     # initial state stochastic creation
     for charger in range(number_of_chargers):
         is_vehicle_present = 0
-        pointer = 0
+        total_occupancy_timesteps_per_charger = 0
+        arrival = 0
 
-        arrival_car = []
-        departure_car = []
+        vehicle_arrivals = []
+        vehicle_departures = []
 
         for hour in range(24):
             if is_vehicle_present == 0:
                 arrival = round(random.rand()-0.1)
                 if arrival == 1 and hour <= 20:
-                    ran = random.randint(20, 50)
-                    vehicle_state_of_charge[charger, hour] = ran / 100
-                    pointer = pointer+1
-                    arrival_car.append(hour)
+                    random_integer = random.randint(20, 50)
+                    vehicle_state_of_charge[charger, hour] = random_integer / 100
+                    total_occupancy_timesteps_per_charger = total_occupancy_timesteps_per_charger+1
+                    vehicle_arrivals.append(hour)
                     upper_limit = min(hour + 10, 25)
-                    departure_car.append(random.randint(hour+4, int(upper_limit)))
+                    vehicle_departures.append(random.randint(hour+4, int(upper_limit)))
 
-            if arrival == 1 and pointer > 0:
-                if hour < departure_car[pointer - 1]:
+            if arrival == 1 and total_occupancy_timesteps_per_charger > 0:
+                if hour < vehicle_departures[total_occupancy_timesteps_per_charger - 1]:
                     is_vehicle_present = 1
                     charger_occupancy[charger, hour] = 1
                 else:
@@ -41,8 +42,8 @@ def generate_new_values(self):
                 is_vehicle_present = 0
                 charger_occupancy[charger, hour] = 0
 
-        arrivals.append(arrival_car)
-        departures.append(departure_car)
+        arrivals.append(vehicle_arrivals)
+        departures.append(vehicle_departures)
 
     # information vector creator
     total_vehicles_charging = np.zeros([24])
