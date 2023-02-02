@@ -21,15 +21,15 @@ def simulate_central_management_system(self, actions):
         if charger_occupancy[charger, hour] != 0:
             if actions[charger] >= 0:
                 if hour in arrivals[charger]:
-                    max_charging_energy = min([10, (1 - soc[charger, hour]) * self.EV_PARAMETERS['CAPACITY']])
+                    max_charging_energy = min([self.EV_PARAMETERS['MAX CHARGING POWER'], (1 - soc[charger, hour]) * self.EV_PARAMETERS['CAPACITY']])
                 else:
-                    max_charging_energy = min([10, (1 - soc[charger, hour-1]) * self.EV_PARAMETERS['CAPACITY']])
+                    max_charging_energy = min([self.EV_PARAMETERS['MAX CHARGING POWER'], (1 - soc[charger, hour-1]) * self.EV_PARAMETERS['CAPACITY']])
             else:
-                max_charging_energy = min([10, soc[charger, hour] * self.EV_PARAMETERS['CAPACITY']])
+                max_charging_energy = min([self.EV_PARAMETERS['MAX DISCHARGING POWER'], soc[charger, hour] * self.EV_PARAMETERS['CAPACITY']])
         else:
             max_charging_energy = 0
 
-        charging_power[charger] = 100*actions[charger]/100*max_charging_energy
+        charging_power[charger] = actions[charger]*max_charging_energy
 
     # ----------------------------------------------------------------------------
     # Calculation of next state of Battery based on actions

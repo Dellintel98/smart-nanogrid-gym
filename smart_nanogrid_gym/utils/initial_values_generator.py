@@ -26,7 +26,9 @@ def generate_new_values(self):
                 if arrival == 1 and hour <= 20:
                     random_integer = random.randint(20, 50)
                     vehicle_state_of_charge[charger, hour] = random_integer / 100
+
                     total_occupancy_timesteps_per_charger = total_occupancy_timesteps_per_charger+1
+
                     vehicle_arrivals.append(hour)
                     upper_limit = min(hour + 10, 25)
                     vehicle_departures.append(random.randint(hour+4, int(upper_limit)))

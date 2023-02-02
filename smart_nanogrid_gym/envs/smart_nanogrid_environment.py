@@ -17,6 +17,7 @@ class SmartNanogridEnv(gym.Env):
     def __init__(self, price_model=1, pv_system_available_in_model=1):
         self.NUMBER_OF_CHARGERS = 10
         self.NUMBER_OF_DAYS_TO_PREDICT = 1
+        self.NUMBER_OF_HOURS_AHEAD = 3
         self.CURRENT_PRICE_MODEL = price_model
         self.PV_SYSTEM_AVAILABLE_IN_MODEL = pv_system_available_in_model
 
@@ -37,6 +38,9 @@ class SmartNanogridEnv(gym.Env):
         }
 
         self.PV_SYSTEM_PARAMETERS = {
+            'LENGTH IN METERS': 2.279,
+            'WIDTH IN METERS': 1.134,
+            'DEPTH IN MILLIMETERS': 20,
             'TOTAL DIMENSIONS': 2.279 * 1.134 * 20,
             'EFFICIENCY': 0.21
         }
@@ -53,8 +57,16 @@ class SmartNanogridEnv(gym.Env):
         self.simulated_single_day = False
         self.file_directory_path = os.path.realpath(os.path.join(os.path.dirname(__file__), '..')) + '\\files\\'
 
-        low = np.array(np.zeros(8 + 2 * self.NUMBER_OF_CHARGERS), dtype=np.float32)
-        high = np.array(np.ones(8 + 2 * self.NUMBER_OF_CHARGERS), dtype=np.float32)
+        amount_of_observed_variables = 2
+        number_of_observed_charger_values = 2
+
+        amount_of_charger_predictions = self.NUMBER_OF_CHARGERS * number_of_observed_charger_values
+        amount_of_states = amount_of_observed_variables + (self.NUMBER_OF_HOURS_AHEAD * amount_of_observed_variables)
+
+        self.total_amount_of_states = amount_of_states + amount_of_charger_predictions
+
+        low = np.array(np.zeros(self.total_amount_of_states), dtype=np.float32)
+        high = np.array(np.ones(self.total_amount_of_states), dtype=np.float32)
         self.action_space = spaces.Box(
             low=-1,
             high=1, shape=(self.NUMBER_OF_CHARGERS,),
@@ -145,27 +157,30 @@ class SmartNanogridEnv(gym.Env):
 
         [self.departing_vehicles, departure_times, vehicles_state_of_charge] = station_simulation.simulate_ev_charging_station(self)
 
-        disturbances_observation_at_current_timestep = np.array([
+        normalized_disturbances_observation_at_current_timestep = np.array([
             self.energy["Radiation"][0, self.timestep] / 1000,
             self.energy["Price"][0, self.timestep] / 0.1
         ])
 
-        predictions = np.concatenate((
-            np.array([self.energy["Radiation"][0, self.timestep + 1:self.timestep + 4] / 1000]),
-            np.array([self.energy["Price"][0, self.timestep + 1:self.timestep + 4] / 0.1])),
+        min_timesteps_ahead = self.timestep + 1
+        max_timesteps_ahead = min_timesteps_ahead + self.NUMBER_OF_HOURS_AHEAD
+
+        normalized_predictions = np.concatenate((
+            np.array([self.energy["Radiation"][0, min_timesteps_ahead:max_timesteps_ahead] / 1000]),
+            np.array([self.energy["Price"][0, min_timesteps_ahead:max_timesteps_ahead] / 0.1])),
             axis=None
         )
 
-        states = np.concatenate((
+        normalized_states = np.concatenate((
             np.array(vehicles_state_of_charge),
             np.array(departure_times)/24),
             axis=None
         )
 
         observations = np.concatenate((
-            disturbances_observation_at_current_timestep,
-            predictions,
-            states),
+            normalized_disturbances_observation_at_current_timestep,
+            normalized_predictions,
+            normalized_states),
             axis=None
         )
 
