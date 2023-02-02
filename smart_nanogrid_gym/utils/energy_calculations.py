@@ -45,7 +45,14 @@ def get_energy(self):
             count = count + 1
 
     # --------------------------------------
+    # high_tariff = 0.028 + 0.148933
+    # low_tariff = 0.013333 + 0.087613
     price_day = []
+    # if current_price_model == 0:
+    #     price_day = np.array([low_tariff, low_tariff, low_tariff, low_tariff, low_tariff, low_tariff, low_tariff,
+    #                           high_tariff, high_tariff, high_tariff, high_tariff, high_tariff, high_tariff, high_tariff,
+    #                           high_tariff, high_tariff, high_tariff, high_tariff, high_tariff, high_tariff,
+    #                           low_tariff, low_tariff, low_tariff, low_tariff])
     if current_price_model == 1:
         price_day = np.array([0.05, 0.05, 0.05, 0.05, 0.05, 0.05, 0.05, 0.1, 0.1, 0.1, 0.1, 0.1, 0.1, 0.1,
                               0.1, 0.1, 0.1, 0.1, 0.1, 0.1, 0.05, 0.05, 0.05, 0.05])

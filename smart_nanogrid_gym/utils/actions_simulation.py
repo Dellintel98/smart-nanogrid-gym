@@ -3,6 +3,9 @@ import time
 
 
 def simulate_central_management_system(self, actions):
+    # hour = self.timestep
+    # timestep = self.timestep
+    # time_interval = 1
     hour = self.timestep
     consumed = self.energy['Consumed']
     renewable = self.energy['Available renewable']
@@ -18,6 +21,7 @@ def simulate_central_management_system(self, actions):
     # Calculation of demand based on actions
     # Calculation of actions for cars
     for charger in range(self.NUMBER_OF_CHARGERS):
+        # to-do later (maybe): -1=Charger reserved -> lasts for max 15 minutes, 1=Occupied, 0=Empty
         if charger_occupancy[charger, hour] != 0:
             if actions[charger] >= 0:
                 if hour in arrivals[charger]:
@@ -26,6 +30,8 @@ def simulate_central_management_system(self, actions):
                     max_charging_energy = min([self.EV_PARAMETERS['MAX CHARGING POWER'], (1 - soc[charger, hour-1]) * self.EV_PARAMETERS['CAPACITY']])
             else:
                 max_charging_energy = min([self.EV_PARAMETERS['MAX DISCHARGING POWER'], soc[charger, hour] * self.EV_PARAMETERS['CAPACITY']])
+                # max_charging_power = min([self.EV_PARAMETERS['MAX CHARGING POWER'],
+                #                           soc[charger, timestep] * self.EV_PARAMETERS['CAPACITY'] / time_interval])
         else:
             max_charging_energy = 0
 
@@ -38,6 +44,8 @@ def simulate_central_management_system(self, actions):
             soc[charger, hour] = soc[charger, hour] + charging_power[charger]/self.EV_PARAMETERS['CAPACITY']
         elif charger_occupancy[charger, hour] == 1 and hour not in arrivals[charger]:
             soc[charger, hour] = soc[charger, hour-1] + charging_power[charger]/self.EV_PARAMETERS['CAPACITY']
+            # soc[charger, timestep] = soc[charger, timestep - 1] + (charging_power[charger] * time_interval) / \
+            #                          self.EV_PARAMETERS['CAPACITY']
 
     # ----------------------------------------------------------------------------
     # Calculation of energy utilization from the PV
@@ -63,6 +71,7 @@ def simulate_central_management_system(self, actions):
     penalties_per_departing_vehicle = []
     for vehicle in range(len(departing_vehicles)):
         penalties_per_departing_vehicle.append(((1-soc[departing_vehicles[vehicle], hour+1])*2)**2)
+
     insufficiently_charged_vehicles_penalty = sum(penalties_per_departing_vehicle)
 
     total_cost = grid_energy_cost + insufficiently_charged_vehicles_penalty
