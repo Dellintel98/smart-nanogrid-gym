@@ -145,16 +145,22 @@ class SmartNanogridEnv(gym.Env):
                 self.initial_simulation_values['Arrivals'].append(arrivals.tolist())
                 self.initial_simulation_values['Departures'].append(departures.tolist())
 
+        self.__reset_variables_after_completed_day()
+
         return self.__get_observations()
 
-    def __get_observations(self):
-        if self.timestep == 0:
-            self.total_cost_per_timestep = []
-            self.grid_energy_per_timestep = []
-            self.renewable_energy_utilization_per_timestep = []
-            self.penalty_per_timestep = []
-            self.ev_state_of_charge = self.initial_simulation_values["SOC"]
+    def __reset_variables_after_completed_day(self):
+        if self.timestep != 0:
+            raise ValueError('Value of timestep attribute should be 0 during configuration at the program start or '
+                             'when trying to reset simulation variables after a completed single day simulation')
 
+        self.total_cost_per_timestep = []
+        self.grid_energy_per_timestep = []
+        self.renewable_energy_utilization_per_timestep = []
+        self.penalty_per_timestep = []
+        self.ev_state_of_charge = self.initial_simulation_values["SOC"]
+
+    def __get_observations(self):
         [self.departing_vehicles, departure_times, vehicles_state_of_charge] = station_simulation.simulate_ev_charging_station(self)
 
         normalized_disturbances_observation_at_current_timestep = np.array([
