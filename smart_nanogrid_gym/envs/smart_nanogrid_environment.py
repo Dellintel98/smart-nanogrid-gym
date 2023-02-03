@@ -115,6 +115,24 @@ class SmartNanogridEnv(gym.Env):
 
         self.energy = energy_calculations.get_energy(self)
 
+        self.__set_initial_simulation_values(generate_new_initial_values)
+        self.__reset_variables_after_completed_day()
+
+        return self.__get_observations()
+
+    def render(self, mode="human"):
+        pass
+
+    def seed(self, seed=None):
+        # self.np_random, seed = seeding.np_random(seed)
+        # return [seed]
+        pass
+
+    def close(self):
+        # return 0
+        pass
+
+    def __set_initial_simulation_values(self, generate_new_initial_values):
         if generate_new_initial_values:
             self.initial_simulation_values = initial_values_generator.generate_new_values(self)
             savemat(self.file_directory_path + '\\initial_values.mat', self.initial_simulation_values)
@@ -144,10 +162,6 @@ class SmartNanogridEnv(gym.Env):
 
                 self.initial_simulation_values['Arrivals'].append(arrivals.tolist())
                 self.initial_simulation_values['Departures'].append(departures.tolist())
-
-        self.__reset_variables_after_completed_day()
-
-        return self.__get_observations()
 
     def __reset_variables_after_completed_day(self):
         if self.timestep != 0:
@@ -192,14 +206,4 @@ class SmartNanogridEnv(gym.Env):
 
         return observations
 
-    def render(self, mode="human"):
-        pass
 
-    def seed(self, seed=None):
-        # self.np_random, seed = seeding.np_random(seed)
-        # return [seed]
-        pass
-
-    def close(self):
-        # return 0
-        pass
