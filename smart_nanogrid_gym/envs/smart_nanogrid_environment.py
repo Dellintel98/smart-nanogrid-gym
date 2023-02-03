@@ -90,18 +90,10 @@ class SmartNanogridEnv(gym.Env):
         self.timestep = self.timestep + 1
         observations = self.__get_observations()
 
-        if self.timestep == 24:
-            self.simulated_single_day = True
+        self.simulated_single_day = self.__check_is_single_day_simulated()
+        if self.simulated_single_day:
             self.timestep = 0
-            prediction_results = {
-                'SOC': self.ev_state_of_charge,
-                'Grid energy': self.grid_energy_per_timestep,
-                'Utilized renewable energy': self.renewable_energy_utilization_per_timestep,
-                'Penalties': self.penalty_per_timestep,
-                'Available renewable energy': self.energy['Renewable'],
-                'Total cost': self.total_cost_per_timestep
-            }
-            savemat(self.file_directory_path + '\\prediction_results.mat', {'Prediction results': prediction_results})
+            self.__save_prediction_results()
 
         reward = -results['Total cost']
         self.info = {}
@@ -177,4 +169,19 @@ class SmartNanogridEnv(gym.Env):
 
         return observations
 
+    def __check_is_single_day_simulated(self):
+        if self.timestep == 24:
+            return True
+        else:
+            return False
 
+    def __save_prediction_results(self):
+        prediction_results = {
+            'SOC': self.ev_state_of_charge,
+            'Grid energy': self.grid_energy_per_timestep,
+            'Utilized renewable energy': self.renewable_energy_utilization_per_timestep,
+            'Penalties': self.penalty_per_timestep,
+            'Available renewable energy': self.energy['Renewable'],
+            'Total cost': self.total_cost_per_timestep
+        }
+        savemat(self.file_directory_path + '\\prediction_results.mat', {'Prediction results': prediction_results})
