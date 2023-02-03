@@ -112,11 +112,18 @@ class SmartNanogridEnv(gym.Env):
         self.timestep = 0
         self.day = 1
         self.simulated_single_day = False
+        self.total_cost_per_timestep = []
+        self.grid_energy_per_timestep = []
+        self.renewable_energy_utilization_per_timestep = []
+        self.penalty_per_timestep = []
 
-        self.energy = energy_calculations.get_energy(self)
+        self.energy = energy_calculations.get_energy(self.NUMBER_OF_DAYS_TO_PREDICT, self.CURRENT_PRICE_MODEL,
+                                                     self.PV_SYSTEM_AVAILABLE_IN_MODEL, self.file_directory_path,
+                                                     self.PV_SYSTEM_PARAMETERS['TOTAL DIMENSIONS'],
+                                                     self.PV_SYSTEM_PARAMETERS['EFFICIENCY'])
+        self.initial_simulation_values = self.__get_initial_simulation_values(generate_new_initial_values)
 
-        self.__set_initial_simulation_values(generate_new_initial_values)
-        self.__reset_variables_after_completed_day()
+        self.ev_state_of_charge = self.initial_simulation_values["SOC"]
 
         return self.__get_observations()
 
@@ -132,24 +139,11 @@ class SmartNanogridEnv(gym.Env):
         # return 0
         pass
 
-    def __set_initial_simulation_values(self, generate_new_initial_values):
+    def __get_initial_simulation_values(self, generate_new_initial_values):
         if generate_new_initial_values:
-            self.initial_simulation_values = initial_values_generator.generate_new_values(self.file_directory_path,
-                                                                                          self.NUMBER_OF_CHARGERS)
+            return initial_values_generator.generate_new_values(self.file_directory_path, self.NUMBER_OF_CHARGERS)
         else:
-            self.initial_simulation_values = initial_values_generator.load_initial_values(self.file_directory_path,
-                                                                                          self.NUMBER_OF_CHARGERS)
-
-    def __reset_variables_after_completed_day(self):
-        if self.timestep != 0:
-            raise ValueError('Value of timestep attribute should be 0 during configuration at the program start or '
-                             'when trying to reset simulation variables after a completed single day simulation')
-
-        self.total_cost_per_timestep = []
-        self.grid_energy_per_timestep = []
-        self.renewable_energy_utilization_per_timestep = []
-        self.penalty_per_timestep = []
-        self.ev_state_of_charge = self.initial_simulation_values["SOC"]
+            return initial_values_generator.load_initial_values(self.file_directory_path, self.NUMBER_OF_CHARGERS)
 
     def __get_observations(self):
         [self.departing_vehicles, departure_times, vehicles_state_of_charge] = station_simulation.simulate_ev_charging_station(self)

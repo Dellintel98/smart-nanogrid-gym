@@ -2,16 +2,14 @@ import numpy as np
 import scipy.io
 
 
-def get_energy(self):
-    days_of_experiment = self.NUMBER_OF_DAYS_TO_PREDICT
-    current_price_model = self.CURRENT_PRICE_MODEL
+def get_energy(experiment_length_in_days, current_price_model, pv_system_availability, file_directory_path, pv_system_total_dimensions, pv_system_efficiency):
     # pv_system_availability = int(self.PV_SYSTEM_AVAILABLE_IN_MODEL)
-    pv_system_availability = 1 if self.PV_SYSTEM_AVAILABLE_IN_MODEL else 0
+    # pv_system_availability = 1 if self.PV_SYSTEM_AVAILABLE_IN_MODEL else 0
 
-    atmospheric_conditions = scipy.io.loadmat(self.file_directory_path + 'atmospheric_conditions.mat')
+    atmospheric_conditions = scipy.io.loadmat(file_directory_path + 'atmospheric_conditions.mat')
     atmospheric_conditions_forecast = atmospheric_conditions['mydata']
 
-    experiment_time_period_plus_day_ahead = 24 * (days_of_experiment + 1)
+    experiment_time_period_plus_day_ahead = 24 * (experiment_length_in_days + 1)
     temperature = np.zeros([experiment_time_period_plus_day_ahead, 1])
     humidity = np.zeros([experiment_time_period_plus_day_ahead, 1])
     solar_irradiance = np.zeros([experiment_time_period_plus_day_ahead, 1])
@@ -28,15 +26,15 @@ def get_energy(self):
         count = count + 1
 
     single_experiment_day_length_in_minutes = int(60 / timestep_in_minutes) * 24
-    experiment_length_in_minutes = days_of_experiment * single_experiment_day_length_in_minutes
+    experiment_length_in_minutes = experiment_length_in_days * single_experiment_day_length_in_minutes
 
-    available_renewable_energy = np.zeros([days_of_experiment, single_experiment_day_length_in_minutes * 2])
-    solar_radiation = np.zeros([days_of_experiment, single_experiment_day_length_in_minutes * 2])
+    available_renewable_energy = np.zeros([experiment_length_in_days, single_experiment_day_length_in_minutes * 2])
+    solar_radiation = np.zeros([experiment_length_in_days, single_experiment_day_length_in_minutes * 2])
 
     count = 0
-    for day in range(0, int(days_of_experiment)):
+    for day in range(0, int(experiment_length_in_days)):
         for time_interval in range(0, single_experiment_day_length_in_minutes * 2):
-            scaling_pv = self.PV_SYSTEM_PARAMETERS['TOTAL DIMENSIONS'] * self.PV_SYSTEM_PARAMETERS['EFFICIENCY'] / 1000
+            scaling_pv = pv_system_total_dimensions * pv_system_efficiency / 1000
             scaling_sol = 1.5
 
             temp = solar_irradiance[count, 0] * scaling_sol * scaling_pv * pv_system_availability
@@ -76,8 +74,8 @@ def get_energy(self):
                            0.1, 0.06, 0.06, 0.06, 0.1, 0.1, 0.1, 0.1]
 
     price_day = np.concatenate([price_day, price_day], axis=0)
-    price = np.zeros((days_of_experiment, 48))
-    for day in range(0, days_of_experiment):
+    price = np.zeros((experiment_length_in_days, 48))
+    for day in range(0, experiment_length_in_days):
         price[day, :] = price_day
 
     # for ii in range(1,days_of_experiment):
