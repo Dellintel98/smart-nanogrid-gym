@@ -1,10 +1,9 @@
 import numpy as np
 from numpy import random
-import scipy.io
+from scipy.io import loadmat, savemat
 
 
-def generate_new_values(self):
-    number_of_chargers = self.NUMBER_OF_CHARGERS
+def generate_new_values(file_directory_path, number_of_chargers):
     arrivals = []
     departures = []
 
@@ -52,10 +51,45 @@ def generate_new_values(self):
     for hour in range(24):
         total_vehicles_charging[hour] = np.sum(charger_occupancy[:, hour])
 
-    return {
+    generated_initial_values = {
         'SOC': vehicle_state_of_charge,
         'Arrivals': arrivals,
         'Departures': departures,
         'Total vehicles charging': total_vehicles_charging,
         'Charger occupancy': charger_occupancy
+    }
+
+    savemat(file_directory_path + '\\initial_values.mat', generated_initial_values)
+
+    return generated_initial_values
+
+
+def load_initial_values(file_directory_path, number_of_chargers):
+    initial_values = loadmat(file_directory_path + '\\initial_values.mat')
+
+    arrival_times = initial_values['Arrivals']
+    departure_times = initial_values['Departures']
+
+    reformatted_arrivals = []
+    reformatted_departures = []
+
+    for charger in range(number_of_chargers):
+        if arrival_times.shape == (1, 10):
+            arrivals = arrival_times[0][charger][0]
+            departures = departure_times[0][charger][0]
+        elif arrival_times.shape == (10, 3):
+            arrivals = arrival_times[charger]
+            departures = departure_times[charger]
+        else:
+            raise Exception("Initial values loaded from initial_values.mat have wrong shape.")
+
+        reformatted_arrivals.append(arrivals.tolist())
+        reformatted_departures.append(departures.tolist())
+
+    return {
+        'SOC': initial_values['SOC'],
+        'Arrivals': reformatted_arrivals,
+        'Departures': reformatted_departures,
+        'Total vehicles charging': initial_values['Total vehicles charging'],
+        'Charger occupancy': initial_values['Charger occupancy']
     }

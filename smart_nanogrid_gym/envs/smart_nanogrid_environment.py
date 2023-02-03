@@ -134,34 +134,11 @@ class SmartNanogridEnv(gym.Env):
 
     def __set_initial_simulation_values(self, generate_new_initial_values):
         if generate_new_initial_values:
-            self.initial_simulation_values = initial_values_generator.generate_new_values(self)
-            savemat(self.file_directory_path + '\\initial_values.mat', self.initial_simulation_values)
+            self.initial_simulation_values = initial_values_generator.generate_new_values(self.file_directory_path,
+                                                                                          self.NUMBER_OF_CHARGERS)
         else:
-            initial_values = loadmat(self.file_directory_path + '\\initial_values.mat')
-
-            arrival_times = initial_values['Arrivals']
-            departure_times = initial_values['Departures']
-
-            self.initial_simulation_values = {
-                'SOC': initial_values['SOC'],
-                'Arrivals': [],
-                'Departures': [],
-                'Total vehicles charging': initial_values['Total vehicles charging'],
-                'Charger occupancy': initial_values['Charger occupancy']
-            }
-
-            for charger in range(self.NUMBER_OF_CHARGERS):
-                if arrival_times.shape == (1, 10):
-                    arrivals = arrival_times[0][charger][0]
-                    departures = departure_times[0][charger][0]
-                elif arrival_times.shape == (10, 3):
-                    arrivals = arrival_times[charger]
-                    departures = departure_times[charger]
-                else:
-                    raise Exception("Initial values loaded from initial_values.mat have wrong shape.")
-
-                self.initial_simulation_values['Arrivals'].append(arrivals.tolist())
-                self.initial_simulation_values['Departures'].append(departures.tolist())
+            self.initial_simulation_values = initial_values_generator.load_initial_values(self.file_directory_path,
+                                                                                          self.NUMBER_OF_CHARGERS)
 
     def __reset_variables_after_completed_day(self):
         if self.timestep != 0:
