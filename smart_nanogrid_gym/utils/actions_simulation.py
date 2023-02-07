@@ -62,6 +62,40 @@ def charge_or_discharge_vehicle(self, action, arrival, hour, vehicle_soc):
     return charger_power_value
 
 
+def calculate_available_renewable_energy(renewable, consumed):
+    available_energy = renewable - consumed
+    return max([0, available_energy])
+
+
+def calculate_grid_energy(total_power, available_renewable_energy):
+    grid_energy = total_power - available_renewable_energy
+    return max([grid_energy, 0])
+
+
+def calculate_grid_energy_cost(grid_energy, price):
+    cost = grid_energy * price
+    return cost
+
+
+def calculate_insufficiently_charged_penalty_per_vehicle(vehicle, soc, hour):
+    uncharged_capacity = 1 - soc[vehicle, hour + 1]
+    penalty = (uncharged_capacity * 2) ** 2
+    return penalty
+
+
+def calculate_insufficiently_charged_penalty(departing_vehicles, soc, hour):
+    penalties_per_departing_vehicle = []
+    for vehicle in range(len(departing_vehicles)):
+        penalty = calculate_insufficiently_charged_penalty_per_vehicle(departing_vehicles[vehicle], soc, hour)
+        penalties_per_departing_vehicle.append(penalty)
+
+    return sum(penalties_per_departing_vehicle)
+
+
+def calculate_total_cost(grid_cost, total_penalty):
+    return grid_cost + total_penalty
+
+
 def simulate_central_management_system(self, actions):
     # hour = self.timestep
     # timestep = self.timestep
@@ -85,34 +119,15 @@ def simulate_central_management_system(self, actions):
         else:
             charger_power_values[charger] = 0
 
-    # ----------------------------------------------------------------------------
-    # Calculation of energy utilization from the PV
-    # Calculation of energy coming from Grid
-    available_renewable_energy = max([0, renewable[0, hour] - consumed[0, hour]])
     total_charging_power = sum(charger_power_values)
 
-    # ----------------------------------------------------------------------------
-    # First Cost index
-    grid_energy = max([total_charging_power - available_renewable_energy, 0])
-    grid_energy_cost = grid_energy*self.energy["Price"][0, hour]
+    available_renewable_energy = calculate_available_renewable_energy(renewable[0, hour], consumed[0, hour])
+    grid_energy = calculate_grid_energy(total_charging_power, available_renewable_energy)
 
-    # ----------------------------------------------------------------------------
-    # Second Cost index
-    # Penalty of wasted RES energy
-    # This is not used in this environment version
-    # RES_avail = max([RES_avail-Total_charging, 0])
-    # Cost_2 = -RES_avail * (self.Energy["Price"][0, hour]/2)
+    grid_energy_cost = calculate_grid_energy_cost(grid_energy, self.energy["Price"][0, hour])
+    insufficiently_charged_vehicles_penalty = calculate_insufficiently_charged_penalty(departing_vehicles, soc, hour)
 
-    # ----------------------------------------------------------------------------
-    # Third Cost index
-    # Penalty of not fully charging the cars that leave
-    penalties_per_departing_vehicle = []
-    for vehicle in range(len(departing_vehicles)):
-        penalties_per_departing_vehicle.append(((1-soc[departing_vehicles[vehicle], hour+1])*2)**2)
-
-    insufficiently_charged_vehicles_penalty = sum(penalties_per_departing_vehicle)
-
-    total_cost = grid_energy_cost + insufficiently_charged_vehicles_penalty
+    total_cost = calculate_total_cost(grid_energy_cost, insufficiently_charged_vehicles_penalty)
 
     return {
         'Total cost': total_cost,
