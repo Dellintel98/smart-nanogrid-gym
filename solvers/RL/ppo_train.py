@@ -1,5 +1,5 @@
 import gym
-import Chargym_Charging_Station
+import smart_nanogrid_gym
 import argparse
 
 import numpy
@@ -24,7 +24,7 @@ if not os.path.exists(logdir):
     os.makedirs(logdir)
 
 
-env = gym.make('ChargingEnv-v0')
+env = gym.make('SmartNanogridEnv-v0')
 
 # the noise objects for DDPG
 n_actions = env.action_space.shape[-1]

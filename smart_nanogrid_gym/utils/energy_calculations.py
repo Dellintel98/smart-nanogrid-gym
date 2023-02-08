@@ -44,14 +44,16 @@ def get_energy_price(price_day, experiment_length_in_days):
     return price
 
 
-def calculate_solar_irradiance_mean_per_timestep(timestep_in_minutes,
-                                                 experiment_time_period_plus_day_ahead,
-                                                 solar_irradiance_forecast):
-    solar_irradiance = np.zeros([experiment_time_period_plus_day_ahead, 1])
+def calculate_solar_irradiance_mean_per_timestep(timestep_in_minutes, experiment_length_in_hours, file_directory_path):
+    solar_irradiance_forecast = load_irradiance_data(file_directory_path, 'solar_irradiance.mat')
+
+    solar_irradiance = np.zeros([experiment_length_in_hours, 1])
+    experiment_length_in_minutes = timestep_in_minutes * experiment_length_in_hours
+
     count = 0
-    for time_interval in range(0, timestep_in_minutes * experiment_time_period_plus_day_ahead, timestep_in_minutes):
-        next_time_interval = time_interval + timestep_in_minutes - 1
-        solar_irradiance[count, 0] = (np.mean(solar_irradiance_forecast[time_interval: next_time_interval, 2]))
+    for time_interval in range(0, experiment_length_in_minutes, timestep_in_minutes):
+        next_time_interval = time_interval + timestep_in_minutes
+        solar_irradiance[count, 0] = (np.mean(solar_irradiance_forecast[time_interval: next_time_interval]))
         count = count + 1
     return solar_irradiance
 
@@ -60,69 +62,52 @@ def calculate_pv_scaling_coefficient(pv_system_total_dimensions, pv_system_effic
     return pv_system_total_dimensions * pv_system_efficiency / 1000
 
 
-def calculate_available_renewable_energy(solar_irradiance, scaling_pv, pv_system_availability):
+def calculate_available_solar_energy(solar_irradiance, pv_system_total_dimensions, pv_system_efficiency):
+    scaling_pv = calculate_pv_scaling_coefficient(pv_system_total_dimensions, pv_system_efficiency)
     scaling_sol = 1.5
-    return solar_irradiance * scaling_pv * scaling_sol * pv_system_availability
+    return solar_irradiance * scaling_pv * scaling_sol
 
 
-def calculate_available_solar_radiation_and_energy(
-        experiment_length_in_days, single_experiment_day_length_in_minutes, pv_system_total_dimensions,
-        pv_system_efficiency, solar_irradiance, pv_system_availability
-):
-    renewable_energy = np.zeros([experiment_length_in_days, single_experiment_day_length_in_minutes * 2])
-    solar_radiation = np.zeros([experiment_length_in_days, single_experiment_day_length_in_minutes * 2])
-
-    count = 0
-    for day in range(0, int(experiment_length_in_days)):
-        for time_interval in range(0, single_experiment_day_length_in_minutes * 2):
-            scaling_pv = calculate_pv_scaling_coefficient(pv_system_total_dimensions, pv_system_efficiency)
-
-            renewable_energy[day, time_interval] = calculate_available_renewable_energy(solar_irradiance[count, 0],
-                                                                                        scaling_pv,
-                                                                                        pv_system_availability)
-            solar_radiation[day, time_interval] = solar_irradiance[count, 0]
-            count = count + 1
+def calculate_available_solar_radiation(solar_irradiance, experiment_length_in_days, timestep_in_minutes):
+    experiment_day_length_in_timesteps = int(60 / timestep_in_minutes) * 24
 
     reshaped_solar_irradiance = np.reshape(
         solar_irradiance,
-        (int(experiment_length_in_days), single_experiment_day_length_in_minutes * 2)
+        (experiment_length_in_days, experiment_day_length_in_timesteps * 2)
     )
 
-    return renewable_energy, solar_radiation
+    return reshaped_solar_irradiance
 
 
-def get_energy(experiment_length_in_days, current_price_model, pv_system_availability, file_directory_path,
-               pv_system_total_dimensions, pv_system_efficiency):
-    # pv_system_availability = int(self.PV_SYSTEM_AVAILABLE_IN_MODEL)
-    # pv_system_availability = 1 if self.PV_SYSTEM_AVAILABLE_IN_MODEL else 0
+def load_irradiance_data(file_directory_path, irradiance_data_filename):
+    irradiance_data = scipy.io.loadmat(file_directory_path + irradiance_data_filename)
+    return irradiance_data['irradiance']
 
-    atmospheric_conditions = scipy.io.loadmat(file_directory_path + 'atmospheric_conditions.mat')
-    atmospheric_conditions_forecast = atmospheric_conditions['mydata']
 
-    experiment_time_period_plus_day_ahead = 24 * (experiment_length_in_days + 1)
+def get_energy(experiment_length_in_days, current_price_model, pv_system_available, file_directory_path,
+               pv_system_total_dimensions, pv_system_efficiency, number_of_days_ahead_for_prediction):
     timestep_in_minutes = 60
-    single_experiment_day_length_in_minutes = int(60 / timestep_in_minutes) * 24
-    experiment_length_in_minutes = experiment_length_in_days * single_experiment_day_length_in_minutes
+    experiment_length_in_hours = 24 * (experiment_length_in_days + number_of_days_ahead_for_prediction)
 
-    solar_irradiance = calculate_solar_irradiance_mean_per_timestep(timestep_in_minutes,
-                                                                    experiment_time_period_plus_day_ahead,
-                                                                    atmospheric_conditions_forecast)
-    available_renewable_energy, solar_radiation = calculate_available_solar_radiation_and_energy(
-        experiment_length_in_days,
-        single_experiment_day_length_in_minutes,
-        pv_system_total_dimensions,
-        pv_system_efficiency,
-        solar_irradiance,
-        pv_system_availability
-    )
+    solar_irradiance = calculate_solar_irradiance_mean_per_timestep(timestep_in_minutes, experiment_length_in_hours,
+                                                                    file_directory_path)
+
+    solar_radiation = calculate_available_solar_radiation(solar_irradiance, experiment_length_in_days,
+                                                          timestep_in_minutes)
+
+    if pv_system_available:
+        available_solar_energy = calculate_available_solar_energy(solar_irradiance, pv_system_total_dimensions,
+                                                                  pv_system_efficiency)
+    else:
+        available_solar_energy = np.zeros(np.shape(solar_irradiance))
 
     price_day = get_price_day(current_price_model)
     energy_price = get_energy_price(price_day, experiment_length_in_days)
-    consumed = np.zeros(np.shape(available_renewable_energy))
+    consumed = np.zeros(np.shape(available_solar_energy))
 
     return {
         'Consumed': consumed,
-        'Available renewable': available_renewable_energy,
+        'Available renewable': available_solar_energy,
         'Price': energy_price,
         'Solar radiation': solar_radiation
     }

@@ -14,10 +14,11 @@ import time
 
 
 class SmartNanogridEnv(gym.Env):
-    def __init__(self, price_model=1, pv_system_available_in_model=1):
+    def __init__(self, price_model=1, pv_system_available_in_model=True):
         self.NUMBER_OF_CHARGERS = 10
         self.NUMBER_OF_DAYS_TO_PREDICT = 1
         self.NUMBER_OF_HOURS_AHEAD = 3
+        self.NUMBER_OF_DAYS_AHEAD = 1
         self.CURRENT_PRICE_MODEL = price_model
         self.PV_SYSTEM_AVAILABLE_IN_MODEL = pv_system_available_in_model
 
@@ -112,7 +113,8 @@ class SmartNanogridEnv(gym.Env):
         self.energy = energy_calculations.get_energy(self.NUMBER_OF_DAYS_TO_PREDICT, self.CURRENT_PRICE_MODEL,
                                                      self.PV_SYSTEM_AVAILABLE_IN_MODEL, self.file_directory_path,
                                                      self.PV_SYSTEM_PARAMETERS['TOTAL DIMENSIONS'],
-                                                     self.PV_SYSTEM_PARAMETERS['EFFICIENCY'])
+                                                     self.PV_SYSTEM_PARAMETERS['EFFICIENCY'],
+                                                     self.NUMBER_OF_DAYS_AHEAD)
         self.initial_simulation_values = self.__get_initial_simulation_values(generate_new_initial_values)
 
         self.ev_state_of_charge = self.initial_simulation_values["SOC"]
