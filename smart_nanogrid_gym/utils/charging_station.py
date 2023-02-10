@@ -21,6 +21,7 @@ class ChargingStation:
             'MAX CHARGING POWER': 11,
             'MAX DISCHARGING POWER': 11
         }
+        self.charger_power_values = np.zeros(self.NUMBER_OF_CHARGERS)
 
     def simulate(self, current_timestep):
         self.find_departing_vehicles(current_timestep)
@@ -170,52 +171,72 @@ class ChargingStation:
     def calculate_charging_or_discharging_power(self, max_charging_power, action):
         return action * max_charging_power
 
-    def calculate_next_vehicle_state_of_charge(self, power_value, arrival, hour, soc):
-        if hour in arrival:
-            soc[hour] = soc[hour] + power_value / self.EV_PARAMETERS['CAPACITY']
+    def calculate_next_vehicle_state_of_charge(self, power_value, hour, charger):
+        if hour in self.arrivals[charger]:
+            self.vehicle_state_of_charge[charger, hour] = self.vehicle_state_of_charge[charger, hour] + power_value / self.EV_PARAMETERS['CAPACITY']
         else:
-            soc[hour] = soc[hour - 1] + power_value / self.EV_PARAMETERS['CAPACITY']
+            self.vehicle_state_of_charge[charger, hour] = self.vehicle_state_of_charge[charger, hour - 1] + power_value / self.EV_PARAMETERS['CAPACITY']
             # soc[charger, timestep] = soc[charger, timestep - 1] + (charging_power[charger] * time_interval) / \
             #                          self.EV_PARAMETERS['CAPACITY']
 
-    def calculate_max_charging_power(self, arrival, hour, soc):
+    def calculate_max_charging_power(self, hour, charger):
         # max_charging_energy = min([self.EV_PARAMETERS['MAX CHARGING POWER'],
         #                           soc[charger, timestep] * self.EV_PARAMETERS['CAPACITY'] / time_interval])
-        if hour in arrival:
-            remaining_uncharged_capacity = 1 - soc[hour]
+        if hour in self.arrivals[charger]:
+            remaining_uncharged_capacity = 1 - self.vehicle_state_of_charge[charger, hour]
             power_left_to_charge = remaining_uncharged_capacity * self.EV_PARAMETERS['CAPACITY']
         else:
-            remaining_uncharged_capacity = 1 - soc[hour - 1]
+            remaining_uncharged_capacity = 1 - self.vehicle_state_of_charge[charger, hour - 1]
             power_left_to_charge = remaining_uncharged_capacity * self.EV_PARAMETERS['CAPACITY']
 
         max_charging_energy = min([self.EV_PARAMETERS['MAX CHARGING POWER'], power_left_to_charge])
         return max_charging_energy
 
-    def charge_vehicle(self, action, arrival, hour, vehicle_soc):
-        max_charging_power = self.calculate_max_charging_power(arrival, hour, vehicle_soc)
+    def charge_vehicle(self, action, hour, charger):
+        max_charging_power = self.calculate_max_charging_power(hour, charger)
         charging_power = self.calculate_charging_or_discharging_power(max_charging_power, action)
-        self.calculate_next_vehicle_state_of_charge(charging_power, arrival, hour, vehicle_soc)
+        self.calculate_next_vehicle_state_of_charge(charging_power, hour, charger)
         return charging_power
 
-    def calculate_max_discharging_power(self, arrival, hour, soc):
-        if hour in arrival:
-            power_left_to_discharge = soc[hour] * self.EV_PARAMETERS['CAPACITY']
+    def calculate_max_discharging_power(self, hour, charger):
+        if hour in self.arrivals[charger]:
+            power_left_to_discharge = self.vehicle_state_of_charge[charger, hour] * self.EV_PARAMETERS['CAPACITY']
         else:
-            power_left_to_discharge = soc[hour - 1] * self.EV_PARAMETERS['CAPACITY']
+            power_left_to_discharge = self.vehicle_state_of_charge[charger, hour - 1] * self.EV_PARAMETERS['CAPACITY']
 
         max_discharging_energy = min([self.EV_PARAMETERS['MAX DISCHARGING POWER'], power_left_to_discharge])
         return max_discharging_energy
 
-    def discharge_vehicle(self, action, arrival, hour, vehicle_soc):
-        max_discharging_power = self.calculate_max_discharging_power(arrival, hour, vehicle_soc)
+    def discharge_vehicle(self, action, hour, charger):
+        max_discharging_power = self.calculate_max_discharging_power(hour, charger)
         discharging_power = self.calculate_charging_or_discharging_power(max_discharging_power, action)
-        self.calculate_next_vehicle_state_of_charge(discharging_power, arrival, hour, vehicle_soc)
+        self.calculate_next_vehicle_state_of_charge(discharging_power, hour, charger)
         return discharging_power
 
-    def charge_or_discharge_vehicle(self, action, arrival, hour, vehicle_soc):
+    def charge_or_discharge_vehicle(self, action, hour, charger):
         if action >= 0:
-            charger_power_value = self.charge_vehicle(action, arrival, hour, vehicle_soc)
+            charger_power_value = self.charge_vehicle(action, hour, charger)
         else:
-            charger_power_value = self.discharge_vehicle(action, arrival, hour, vehicle_soc)
+            charger_power_value = self.discharge_vehicle(action, hour, charger)
 
         return charger_power_value
+
+    def simulate_vehicle_charging(self, actions, current_timestep):
+        # hour = self.timestep
+        # timestep = self.timestep
+        # time_interval = 1
+        hour = current_timestep
+
+        self.charger_power_values = np.zeros(self.NUMBER_OF_CHARGERS)
+
+        for charger in range(self.NUMBER_OF_CHARGERS):
+            # to-do later (maybe): -1=Charger reserved -> lasts for max 15 minutes, 1=Occupied, 0=Empty
+            if self.charger_occupancy[charger, hour] == 1:
+                self.charger_power_values[charger] = self.charge_or_discharge_vehicle(actions[charger], hour, charger)
+            else:
+                self.charger_power_values[charger] = 0
+
+        total_charging_power = self.charger_power_values.sum()
+        # total_charging_power = sum(charger_power_values)
+
+        return total_charging_power
