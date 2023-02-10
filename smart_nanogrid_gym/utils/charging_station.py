@@ -4,7 +4,7 @@ from scipy.io import loadmat, savemat
 
 
 class ChargingStation:
-    def __init__(self, number_of_chargers):
+    def __init__(self, number_of_chargers, ev_parameters):
         self.NUMBER_OF_CHARGERS = number_of_chargers
         self.vehicle_state_of_charge = None
         self.arrivals = None
@@ -14,13 +14,7 @@ class ChargingStation:
         self.departing_vehicles = []
         self.departure_times = []
         self.vehicle_state_of_charge_at_current_timestep = []
-        self.EV_PARAMETERS = {
-            'CAPACITY': 30,
-            'CHARGING EFFICIENCY': 0.91,
-            'DISCHARGING EFFICIENCY': 0.91,
-            'MAX CHARGING POWER': 11,
-            'MAX DISCHARGING POWER': 11
-        }
+        self.EV_PARAMETERS = ev_parameters
         self.charger_power_values = np.zeros(self.NUMBER_OF_CHARGERS)
 
     def simulate(self, current_timestep):
@@ -28,7 +22,7 @@ class ChargingStation:
         self.calculate_departure_times(current_timestep)
         self.calculate_state_of_charge_for_each_vehicle(current_timestep)
 
-        return self.departing_vehicles, self.departure_times, self.vehicle_state_of_charge_at_current_timestep
+        return self.departure_times, self.vehicle_state_of_charge_at_current_timestep
 
     def find_departing_vehicles(self, hour):
         if hour >= 24:

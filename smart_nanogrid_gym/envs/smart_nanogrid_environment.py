@@ -12,6 +12,8 @@ from smart_nanogrid_gym.utils import initial_values_generator
 from smart_nanogrid_gym.utils import actions_simulation
 import time
 
+from smart_nanogrid_gym.utils.charging_station import ChargingStation
+
 
 class SmartNanogridEnv(gym.Env):
     def __init__(self, price_model=1, pv_system_available_in_model=True):
@@ -46,12 +48,12 @@ class SmartNanogridEnv(gym.Env):
             'EFFICIENCY': 0.21
         }
 
-        self.timestep, self.day = None, None
-        self.initial_simulation_values = None
+        self.charging_station = ChargingStation(self.NUMBER_OF_CHARGERS, self.EV_PARAMETERS)
+
+        self.timestep = None
         self.info = None
 
-        self.energy, self.ev_state_of_charge = None, None
-        self.departing_vehicles = None
+        self.energy = None
         self.grid_energy_per_timestep, self.renewable_energy_utilization_per_timestep = None, None
         self.total_cost_per_timestep, self.penalty_per_timestep = None, None
 
@@ -86,7 +88,7 @@ class SmartNanogridEnv(gym.Env):
         self.grid_energy_per_timestep.append(results['Grid energy'])
         self.renewable_energy_utilization_per_timestep.append(results['Utilized renewable energy'])
         self.penalty_per_timestep.append(results['Insufficiently charged vehicles penalty'])
-        self.ev_state_of_charge = results['EV state of charge']
+        self.charging_station.vehicle_state_of_charge = results['EV state of charge']
 
         self.timestep = self.timestep + 1
         observations = self.__get_observations()
@@ -103,7 +105,6 @@ class SmartNanogridEnv(gym.Env):
 
     def reset(self, generate_new_initial_values=True):
         self.timestep = 0
-        self.day = 1
         self.simulated_single_day = False
         self.total_cost_per_timestep = []
         self.grid_energy_per_timestep = []
@@ -115,9 +116,7 @@ class SmartNanogridEnv(gym.Env):
                                                      self.PV_SYSTEM_PARAMETERS['TOTAL DIMENSIONS'],
                                                      self.PV_SYSTEM_PARAMETERS['EFFICIENCY'],
                                                      self.NUMBER_OF_DAYS_AHEAD)
-        self.initial_simulation_values = self.__get_initial_simulation_values(generate_new_initial_values)
-
-        self.ev_state_of_charge = self.initial_simulation_values["SOC"]
+        self.__load_initial_simulation_values(generate_new_initial_values)
 
         return self.__get_observations()
 
@@ -133,14 +132,14 @@ class SmartNanogridEnv(gym.Env):
         # return 0
         pass
 
-    def __get_initial_simulation_values(self, generate_new_initial_values):
+    def __load_initial_simulation_values(self, generate_new_initial_values):
         if generate_new_initial_values:
-            return initial_values_generator.generate_new_values(self.file_directory_path, self.NUMBER_OF_CHARGERS)
+            self.charging_station.load_initial_values(self.file_directory_path)
         else:
-            return initial_values_generator.load_initial_values(self.file_directory_path, self.NUMBER_OF_CHARGERS)
+            self.charging_station.generate_new_values(self.file_directory_path)
 
     def __get_observations(self):
-        [self.departing_vehicles, departure_times, vehicles_state_of_charge] = station_simulation.simulate_ev_charging_station(self)
+        [departure_times, vehicles_state_of_charge] = self.charging_station.simulate(self.timestep)
 
         normalized_disturbances_observation_at_current_timestep = np.array([
             self.energy["Radiation"][0, self.timestep] / 1000,
@@ -179,7 +178,7 @@ class SmartNanogridEnv(gym.Env):
 
     def __save_prediction_results(self):
         prediction_results = {
-            'SOC': self.ev_state_of_charge,
+            'SOC': self.charging_station.vehicle_state_of_charge,
             'Grid energy': self.grid_energy_per_timestep,
             'Utilized renewable energy': self.renewable_energy_utilization_per_timestep,
             'Penalties': self.penalty_per_timestep,
