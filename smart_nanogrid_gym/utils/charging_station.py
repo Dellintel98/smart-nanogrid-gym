@@ -1,6 +1,7 @@
 import numpy as np
 from numpy import random
 from scipy.io import loadmat, savemat
+from config import data_files_directory_path
 
 
 class ChargingStation:
@@ -70,8 +71,8 @@ class ChargingStation:
         for charger in range(self.NUMBER_OF_CHARGERS):
             self.vehicle_state_of_charge_at_current_timestep.append(self.vehicle_state_of_charge[charger, hour])
 
-    def load_initial_values(self, file_directory_path):
-        initial_values = loadmat(file_directory_path + '\\initial_values.mat')
+    def load_initial_values(self):
+        initial_values = loadmat(data_files_directory_path + '\\initial_values.mat')
 
         arrival_times = initial_values['Arrivals']
         departure_times = initial_values['Departures']
@@ -98,7 +99,7 @@ class ChargingStation:
         self.charger_occupancy = initial_values['Charger occupancy']
         self.total_vehicles_charging = initial_values['Total vehicles charging']
 
-    def generate_new_values(self, file_directory_path):
+    def generate_new_values(self):
         arrivals = []
         departures = []
 
@@ -160,7 +161,7 @@ class ChargingStation:
             'Charger occupancy': charger_occupancy
         }
 
-        savemat(file_directory_path + '\\initial_values.mat', generated_initial_values)
+        savemat(data_files_directory_path + '\\initial_values.mat', generated_initial_values)
 
     def calculate_charging_or_discharging_power(self, max_charging_power, action):
         return action * max_charging_power

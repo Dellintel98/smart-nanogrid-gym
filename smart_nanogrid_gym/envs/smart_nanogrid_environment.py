@@ -1,16 +1,14 @@
 import numpy as np
-import os
-import sys
 import gym
-import pathlib
 from gym import spaces
 from gym.utils import seeding
-from scipy.io import loadmat, savemat
+from scipy.io import savemat
 import time
 
 from smart_nanogrid_gym.utils.central_management_system import CentralManagementSystem
 from smart_nanogrid_gym.utils.charging_station import ChargingStation
 from smart_nanogrid_gym.utils.pv_system_manager import PVSystemManager
+from ..utils.config import data_files_directory_path
 
 
 class SmartNanogridEnv(gym.Env):
@@ -30,25 +28,10 @@ class SmartNanogridEnv(gym.Env):
             'MAX DISCHARGING POWER': 11
         }
 
-        self.BATTERY_PARAMETERS = {
-            'CAPACITY': 20,
-            'CHARGING EFFICIENCY': 0.91,
-            'DISCHARGING EFFICIENCY': 0.91,
-            'MAX CHARGING POWER': 11,
-            'MAX DISCHARGING POWER': 11
-        }
-
-        self.PV_SYSTEM_PARAMETERS = {
-            'LENGTH IN METERS': 2.279,
-            'WIDTH IN METERS': 1.134,
-            'DEPTH IN MILLIMETERS': 20,
-            'TOTAL DIMENSIONS': 2.279 * 1.134 * 20,
-            'EFFICIENCY': 0.21
-        }
-
         self.charging_station = ChargingStation(self.NUMBER_OF_CHARGERS, self.EV_PARAMETERS)
         self.central_management_system = CentralManagementSystem()
-        self.pv_system_manager = PVSystemManager()
+        if pv_system_available_in_model:
+            self.pv_system_manager = PVSystemManager(self.NUMBER_OF_DAYS_TO_PREDICT, self.NUMBER_OF_DAYS_AHEAD)
 
         self.timestep = None
         self.info = None
@@ -59,9 +42,8 @@ class SmartNanogridEnv(gym.Env):
         self.total_cost_per_timestep, self.penalty_per_timestep = None, None
 
         self.simulated_single_day = False
-        self.file_directory_path = os.path.realpath(os.path.join(os.path.dirname(__file__), '..')) + '\\files\\'
 
-        amount_of_observed_variables = 2
+        amount_of_observed_variables = 1 + int(pv_system_available_in_model)
         number_of_observed_charger_values = 2
 
         amount_of_charger_predictions = self.NUMBER_OF_CHARGERS * number_of_observed_charger_values
@@ -86,7 +68,8 @@ class SmartNanogridEnv(gym.Env):
         total_charging_power = self.charging_station.simulate_vehicle_charging(actions, self.timestep)
         results = self.central_management_system.simulate(self.timestep, total_charging_power, self.energy,
                                                           self.energy_price, self.charging_station.departing_vehicles,
-                                                          self.charging_station.vehicle_state_of_charge)
+                                                          self.charging_station.vehicle_state_of_charge,
+                                                          self.PV_SYSTEM_AVAILABLE_IN_MODEL)
 
         self.total_cost_per_timestep.append(results['Total cost'])
         self.grid_energy_per_timestep.append(results['Grid energy'])
@@ -115,11 +98,9 @@ class SmartNanogridEnv(gym.Env):
         self.renewable_energy_utilization_per_timestep = []
         self.penalty_per_timestep = []
 
-        self.energy = self.pv_system_manager.get_energy(self.NUMBER_OF_DAYS_TO_PREDICT,
-                                                        self.PV_SYSTEM_AVAILABLE_IN_MODEL, self.file_directory_path,
-                                                        self.PV_SYSTEM_PARAMETERS['TOTAL DIMENSIONS'],
-                                                        self.PV_SYSTEM_PARAMETERS['EFFICIENCY'],
-                                                        self.NUMBER_OF_DAYS_AHEAD)
+        if self.PV_SYSTEM_AVAILABLE_IN_MODEL:
+            self.energy = self.pv_system_manager.get_solar_energy()
+
         self.energy_price = self.central_management_system.get_energy_price(self.CURRENT_PRICE_MODEL,
                                                                             self.NUMBER_OF_DAYS_TO_PREDICT)
         self.__load_initial_simulation_values(generate_new_initial_values)
@@ -140,26 +121,33 @@ class SmartNanogridEnv(gym.Env):
 
     def __load_initial_simulation_values(self, generate_new_initial_values):
         if generate_new_initial_values:
-            self.charging_station.load_initial_values(self.file_directory_path)
+            self.charging_station.load_initial_values()
         else:
-            self.charging_station.generate_new_values(self.file_directory_path)
+            self.charging_station.generate_new_values()
 
     def __get_observations(self):
         [departure_times, vehicles_state_of_charge] = self.charging_station.simulate(self.timestep)
 
-        normalized_disturbances_observation_at_current_timestep = np.array([
-            self.energy["Radiation"][0, self.timestep] / 1000,
-            self.energy_price[0, self.timestep] / 0.1
-        ])
-
         min_timesteps_ahead = self.timestep + 1
         max_timesteps_ahead = min_timesteps_ahead + self.NUMBER_OF_HOURS_AHEAD
 
-        normalized_predictions = np.concatenate((
-            np.array([self.energy["Radiation"][0, min_timesteps_ahead:max_timesteps_ahead] / 1000]),
-            np.array([self.energy_price[0, min_timesteps_ahead:max_timesteps_ahead] / 0.1])),
-            axis=None
-        )
+        if self.PV_SYSTEM_AVAILABLE_IN_MODEL:
+            normalized_disturbances_observation_at_current_timestep = np.array([
+                self.energy["Solar radiation"][0, self.timestep] / 1000,
+                self.energy_price[0, self.timestep] / 0.1
+            ])
+
+            normalized_predictions = np.concatenate((
+                np.array([self.energy["Solar radiation"][0, min_timesteps_ahead:max_timesteps_ahead] / 1000]),
+                np.array([self.energy_price[0, min_timesteps_ahead:max_timesteps_ahead] / 0.1])),
+                axis=None
+            )
+        else:
+            normalized_disturbances_observation_at_current_timestep = np.array([
+                self.energy_price[0, self.timestep] / 0.1
+            ])
+
+            normalized_predictions = np.array([self.energy_price[0, min_timesteps_ahead:max_timesteps_ahead] / 0.1])
 
         normalized_states = np.concatenate((
             np.array(vehicles_state_of_charge),
@@ -183,12 +171,17 @@ class SmartNanogridEnv(gym.Env):
             return False
 
     def __save_prediction_results(self):
+        if self.PV_SYSTEM_AVAILABLE_IN_MODEL:
+            available_renewable_energy = self.energy['Available solar energy']
+        else:
+            available_renewable_energy = []
+
         prediction_results = {
             'SOC': self.charging_station.vehicle_state_of_charge,
             'Grid energy': self.grid_energy_per_timestep,
             'Utilized renewable energy': self.renewable_energy_utilization_per_timestep,
             'Penalties': self.penalty_per_timestep,
-            'Available renewable energy': self.energy['Renewable'],
+            'Available renewable energy': available_renewable_energy,
             'Total cost': self.total_cost_per_timestep
         }
-        savemat(self.file_directory_path + '\\prediction_results.mat', {'Prediction results': prediction_results})
+        savemat(data_files_directory_path + '\\prediction_results.mat', {'Prediction results': prediction_results})

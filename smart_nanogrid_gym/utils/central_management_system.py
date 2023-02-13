@@ -30,14 +30,18 @@ class CentralManagementSystem:
         self.total_cost = self.grid_energy_cost + total_penalty
 
     def simulate(self, current_timestep, total_charging_power, energy, energy_price,
-                 departing_vehicles, soc):
+                 departing_vehicles, soc, pv_system_available):
         # hour = self.timestep
         # timestep = self.timestep
         # time_interval = 1
         hour = current_timestep
-        renewable = energy['Available renewable']
 
-        available_renewable_energy = renewable[0, hour]
+        if pv_system_available:
+            renewable = energy['Available solar energy']
+            available_renewable_energy = renewable[0, hour]
+        else:
+            available_renewable_energy = 0
+
         grid_energy = self.calculate_grid_energy(total_charging_power, available_renewable_energy)
 
         self.calculate_grid_energy_cost(grid_energy, energy_price[0, hour])

@@ -9,4 +9,4 @@ class PVSystem:
     depth: float
     total_dimensions: float
     efficiency: float
-    solar_irradiance: ndarray
+    # solar_irradiance: ndarray = None
