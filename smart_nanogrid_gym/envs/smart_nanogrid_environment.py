@@ -6,11 +6,11 @@ import pathlib
 from gym import spaces
 from gym.utils import seeding
 from scipy.io import loadmat, savemat
-from smart_nanogrid_gym.utils import energy_calculations
 import time
 
 from smart_nanogrid_gym.utils.central_management_system import CentralManagementSystem
 from smart_nanogrid_gym.utils.charging_station import ChargingStation
+from smart_nanogrid_gym.utils.pv_system_manager import PVSystemManager
 
 
 class SmartNanogridEnv(gym.Env):
@@ -48,11 +48,13 @@ class SmartNanogridEnv(gym.Env):
 
         self.charging_station = ChargingStation(self.NUMBER_OF_CHARGERS, self.EV_PARAMETERS)
         self.central_management_system = CentralManagementSystem()
+        self.pv_system_manager = PVSystemManager()
 
         self.timestep = None
         self.info = None
 
         self.energy = None
+        self.energy_price = None
         self.grid_energy_per_timestep, self.renewable_energy_utilization_per_timestep = None, None
         self.total_cost_per_timestep, self.penalty_per_timestep = None, None
 
@@ -83,9 +85,8 @@ class SmartNanogridEnv(gym.Env):
     def step(self, actions):
         total_charging_power = self.charging_station.simulate_vehicle_charging(actions, self.timestep)
         results = self.central_management_system.simulate(self.timestep, total_charging_power, self.energy,
-                                                          self.charging_station.departing_vehicles,
+                                                          self.energy_price, self.charging_station.departing_vehicles,
                                                           self.charging_station.vehicle_state_of_charge)
-        # results = actions_simulation.simulate_central_management_system(self, actions)
 
         self.total_cost_per_timestep.append(results['Total cost'])
         self.grid_energy_per_timestep.append(results['Grid energy'])
@@ -114,11 +115,13 @@ class SmartNanogridEnv(gym.Env):
         self.renewable_energy_utilization_per_timestep = []
         self.penalty_per_timestep = []
 
-        self.energy = energy_calculations.get_energy(self.NUMBER_OF_DAYS_TO_PREDICT, self.CURRENT_PRICE_MODEL,
-                                                     self.PV_SYSTEM_AVAILABLE_IN_MODEL, self.file_directory_path,
-                                                     self.PV_SYSTEM_PARAMETERS['TOTAL DIMENSIONS'],
-                                                     self.PV_SYSTEM_PARAMETERS['EFFICIENCY'],
-                                                     self.NUMBER_OF_DAYS_AHEAD)
+        self.energy = self.pv_system_manager.get_energy(self.NUMBER_OF_DAYS_TO_PREDICT,
+                                                        self.PV_SYSTEM_AVAILABLE_IN_MODEL, self.file_directory_path,
+                                                        self.PV_SYSTEM_PARAMETERS['TOTAL DIMENSIONS'],
+                                                        self.PV_SYSTEM_PARAMETERS['EFFICIENCY'],
+                                                        self.NUMBER_OF_DAYS_AHEAD)
+        self.energy_price = self.central_management_system.get_energy_price(self.CURRENT_PRICE_MODEL,
+                                                                            self.NUMBER_OF_DAYS_TO_PREDICT)
         self.__load_initial_simulation_values(generate_new_initial_values)
 
         return self.__get_observations()
@@ -146,7 +149,7 @@ class SmartNanogridEnv(gym.Env):
 
         normalized_disturbances_observation_at_current_timestep = np.array([
             self.energy["Radiation"][0, self.timestep] / 1000,
-            self.energy["Price"][0, self.timestep] / 0.1
+            self.energy_price[0, self.timestep] / 0.1
         ])
 
         min_timesteps_ahead = self.timestep + 1
@@ -154,7 +157,7 @@ class SmartNanogridEnv(gym.Env):
 
         normalized_predictions = np.concatenate((
             np.array([self.energy["Radiation"][0, min_timesteps_ahead:max_timesteps_ahead] / 1000]),
-            np.array([self.energy["Price"][0, min_timesteps_ahead:max_timesteps_ahead] / 0.1])),
+            np.array([self.energy_price[0, min_timesteps_ahead:max_timesteps_ahead] / 0.1])),
             axis=None
         )
 
