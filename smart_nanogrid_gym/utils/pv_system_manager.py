@@ -1,10 +1,12 @@
 from numpy import mean, reshape, zeros, shape
 from scipy.io import loadmat
 
+from smart_nanogrid_gym.utils.pv_system import PVSystem
+
 
 class PVSystemManager:
     def __init__(self):
-        pass
+        pv_system = PVSystem()
 
     def calculate_solar_irradiance_mean_per_timestep(self, timestep_in_minutes, experiment_length_in_hours,
                                                      file_directory_path):
