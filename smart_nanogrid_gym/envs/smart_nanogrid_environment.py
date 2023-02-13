@@ -7,11 +7,9 @@ from gym import spaces
 from gym.utils import seeding
 from scipy.io import loadmat, savemat
 from smart_nanogrid_gym.utils import energy_calculations
-from smart_nanogrid_gym.utils import station_simulation
-from smart_nanogrid_gym.utils import initial_values_generator
-from smart_nanogrid_gym.utils import actions_simulation
 import time
 
+from smart_nanogrid_gym.utils.central_management_system import CentralManagementSystem
 from smart_nanogrid_gym.utils.charging_station import ChargingStation
 
 
@@ -49,6 +47,7 @@ class SmartNanogridEnv(gym.Env):
         }
 
         self.charging_station = ChargingStation(self.NUMBER_OF_CHARGERS, self.EV_PARAMETERS)
+        self.central_management_system = CentralManagementSystem()
 
         self.timestep = None
         self.info = None
@@ -82,7 +81,11 @@ class SmartNanogridEnv(gym.Env):
         )
 
     def step(self, actions):
-        results = actions_simulation.simulate_central_management_system(self, actions)
+        total_charging_power = self.charging_station.simulate_vehicle_charging(actions, self.timestep)
+        results = self.central_management_system.simulate(self.timestep, total_charging_power, self.energy,
+                                                          self.charging_station.departing_vehicles,
+                                                          self.charging_station.vehicle_state_of_charge)
+        # results = actions_simulation.simulate_central_management_system(self, actions)
 
         self.total_cost_per_timestep.append(results['Total cost'])
         self.grid_energy_per_timestep.append(results['Grid energy'])
