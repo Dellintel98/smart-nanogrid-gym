@@ -60,10 +60,7 @@ class PVSystemManager:
         else:
             available_solar_energy = zeros(shape(solar_irradiance))
 
-        consumed = zeros(shape(available_solar_energy))
-
         return {
-            'Consumed': consumed,
             'Available renewable': available_solar_energy,
             'Solar radiation': solar_radiation
         }

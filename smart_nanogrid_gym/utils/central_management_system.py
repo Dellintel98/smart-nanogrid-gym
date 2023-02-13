@@ -6,10 +6,6 @@ class CentralManagementSystem:
         self.total_cost = 0
         self.grid_energy_cost = 0
 
-    def calculate_available_renewable_energy(self, renewable, consumed):
-        available_energy = renewable - consumed
-        return max([0, available_energy])
-
     def calculate_grid_energy(self, total_power, available_renewable_energy):
         grid_energy = total_power - available_renewable_energy
         return max([grid_energy, 0])
@@ -39,10 +35,9 @@ class CentralManagementSystem:
         # timestep = self.timestep
         # time_interval = 1
         hour = current_timestep
-        consumed = energy['Consumed']
         renewable = energy['Available renewable']
 
-        available_renewable_energy = self.calculate_available_renewable_energy(renewable[0, hour], consumed[0, hour])
+        available_renewable_energy = renewable[0, hour]
         grid_energy = self.calculate_grid_energy(total_charging_power, available_renewable_energy)
 
         self.calculate_grid_energy_cost(grid_energy, energy_price[0, hour])
