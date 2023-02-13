@@ -1,4 +1,4 @@
-from numpy import mean, reshape, zeros, shape
+from numpy import mean, reshape, zeros
 from scipy.io import loadmat
 
 from smart_nanogrid_gym.utils.pv_system import PVSystem

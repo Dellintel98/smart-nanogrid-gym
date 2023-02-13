@@ -20,15 +20,7 @@ class SmartNanogridEnv(gym.Env):
         self.CURRENT_PRICE_MODEL = price_model
         self.PV_SYSTEM_AVAILABLE_IN_MODEL = pv_system_available_in_model
 
-        self.EV_PARAMETERS = {
-            'CAPACITY': 30,
-            'CHARGING EFFICIENCY': 0.91,
-            'DISCHARGING EFFICIENCY': 0.91,
-            'MAX CHARGING POWER': 11,
-            'MAX DISCHARGING POWER': 11
-        }
-
-        self.charging_station = ChargingStation(self.NUMBER_OF_CHARGERS, self.EV_PARAMETERS)
+        self.charging_station = ChargingStation(self.NUMBER_OF_CHARGERS)
         self.central_management_system = CentralManagementSystem()
         if pv_system_available_in_model:
             self.pv_system_manager = PVSystemManager(self.NUMBER_OF_DAYS_TO_PREDICT, self.NUMBER_OF_DAYS_AHEAD)

@@ -2,10 +2,11 @@ import numpy as np
 from numpy import random
 from scipy.io import loadmat, savemat
 from config import data_files_directory_path
+from smart_nanogrid_gym.utils.electric_vehicle import ElectricVehicle
 
 
 class ChargingStation:
-    def __init__(self, number_of_chargers, ev_parameters):
+    def __init__(self, number_of_chargers):
         self.NUMBER_OF_CHARGERS = number_of_chargers
         self.vehicle_state_of_charge = None
         self.arrivals = None
@@ -15,8 +16,11 @@ class ChargingStation:
         self.departing_vehicles = []
         self.departure_times = []
         self.vehicle_state_of_charge_at_current_timestep = []
-        self.EV_PARAMETERS = ev_parameters
         self.charger_power_values = np.zeros(self.NUMBER_OF_CHARGERS)
+
+        self.electric_vehicle_info = ElectricVehicle(battery_capacity=30, charging_efficiency=0.91,
+                                                     discharging_efficiency=0.91, max_charging_power=11,
+                                                     max_discharging_power=11)
 
     def simulate(self, current_timestep):
         self.find_departing_vehicles(current_timestep)
@@ -168,9 +172,9 @@ class ChargingStation:
 
     def calculate_next_vehicle_state_of_charge(self, power_value, hour, charger):
         if hour in self.arrivals[charger]:
-            self.vehicle_state_of_charge[charger, hour] = self.vehicle_state_of_charge[charger, hour] + power_value / self.EV_PARAMETERS['CAPACITY']
+            self.vehicle_state_of_charge[charger, hour] = self.vehicle_state_of_charge[charger, hour] + power_value / self.electric_vehicle_info.battery_capacity
         else:
-            self.vehicle_state_of_charge[charger, hour] = self.vehicle_state_of_charge[charger, hour - 1] + power_value / self.EV_PARAMETERS['CAPACITY']
+            self.vehicle_state_of_charge[charger, hour] = self.vehicle_state_of_charge[charger, hour - 1] + power_value / self.electric_vehicle_info.battery_capacity
             # soc[charger, timestep] = soc[charger, timestep - 1] + (charging_power[charger] * time_interval) / \
             #                          self.EV_PARAMETERS['CAPACITY']
 
@@ -179,12 +183,12 @@ class ChargingStation:
         #                           soc[charger, timestep] * self.EV_PARAMETERS['CAPACITY'] / time_interval])
         if hour in self.arrivals[charger]:
             remaining_uncharged_capacity = 1 - self.vehicle_state_of_charge[charger, hour]
-            power_left_to_charge = remaining_uncharged_capacity * self.EV_PARAMETERS['CAPACITY']
+            power_left_to_charge = remaining_uncharged_capacity * self.electric_vehicle_info.battery_capacity
         else:
             remaining_uncharged_capacity = 1 - self.vehicle_state_of_charge[charger, hour - 1]
-            power_left_to_charge = remaining_uncharged_capacity * self.EV_PARAMETERS['CAPACITY']
+            power_left_to_charge = remaining_uncharged_capacity * self.electric_vehicle_info.battery_capacity
 
-        max_charging_energy = min([self.EV_PARAMETERS['MAX CHARGING POWER'], power_left_to_charge])
+        max_charging_energy = min([self.electric_vehicle_info.max_charging_power, power_left_to_charge])
         return max_charging_energy
 
     def charge_vehicle(self, action, hour, charger):
@@ -195,11 +199,11 @@ class ChargingStation:
 
     def calculate_max_discharging_power(self, hour, charger):
         if hour in self.arrivals[charger]:
-            power_left_to_discharge = self.vehicle_state_of_charge[charger, hour] * self.EV_PARAMETERS['CAPACITY']
+            power_left_to_discharge = self.vehicle_state_of_charge[charger, hour] * self.electric_vehicle_info.battery_capacity
         else:
-            power_left_to_discharge = self.vehicle_state_of_charge[charger, hour - 1] * self.EV_PARAMETERS['CAPACITY']
+            power_left_to_discharge = self.vehicle_state_of_charge[charger, hour - 1] * self.electric_vehicle_info.battery_capacity
 
-        max_discharging_energy = min([self.EV_PARAMETERS['MAX DISCHARGING POWER'], power_left_to_discharge])
+        max_discharging_energy = min([self.electric_vehicle_info.max_discharging_power, power_left_to_discharge])
         return max_discharging_energy
 
     def discharge_vehicle(self, action, hour, charger):
