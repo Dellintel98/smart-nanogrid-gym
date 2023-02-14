@@ -82,41 +82,6 @@ class SmartNanogridEnv(gym.Env):
 
         return observations, reward, self.simulated_single_day, self.info
 
-    def reset(self, generate_new_initial_values=True):
-        self.timestep = 0
-        self.simulated_single_day = False
-        self.total_cost_per_timestep = []
-        self.grid_energy_per_timestep = []
-        self.renewable_energy_utilization_per_timestep = []
-        self.penalty_per_timestep = []
-
-        if self.PV_SYSTEM_AVAILABLE_IN_MODEL:
-            self.energy = self.pv_system_manager.get_solar_energy()
-
-        self.energy_price = self.central_management_system.get_energy_price(self.CURRENT_PRICE_MODEL,
-                                                                            self.NUMBER_OF_DAYS_TO_PREDICT)
-        self.__load_initial_simulation_values(generate_new_initial_values)
-
-        return self.__get_observations()
-
-    def render(self, mode="human"):
-        pass
-
-    def seed(self, seed=None):
-        # self.np_random, seed = seeding.np_random(seed)
-        # return [seed]
-        pass
-
-    def close(self):
-        # return 0
-        pass
-
-    def __load_initial_simulation_values(self, generate_new_initial_values):
-        if generate_new_initial_values:
-            self.charging_station.load_initial_values()
-        else:
-            self.charging_station.generate_new_initial_values()
-
     def __get_observations(self):
         [departure_times, vehicles_state_of_charge] = self.charging_station.simulate(self.timestep)
 
@@ -177,3 +142,38 @@ class SmartNanogridEnv(gym.Env):
             'Total cost': self.total_cost_per_timestep
         }
         savemat(data_files_directory_path + '\\prediction_results.mat', {'Prediction results': prediction_results})
+
+    def reset(self, generate_new_initial_values=True):
+        self.timestep = 0
+        self.simulated_single_day = False
+        self.total_cost_per_timestep = []
+        self.grid_energy_per_timestep = []
+        self.renewable_energy_utilization_per_timestep = []
+        self.penalty_per_timestep = []
+
+        if self.PV_SYSTEM_AVAILABLE_IN_MODEL:
+            self.energy = self.pv_system_manager.get_solar_energy()
+
+        self.energy_price = self.central_management_system.get_energy_price(self.CURRENT_PRICE_MODEL,
+                                                                            self.NUMBER_OF_DAYS_TO_PREDICT)
+        self.__load_initial_simulation_values(generate_new_initial_values)
+
+        return self.__get_observations()
+
+    def __load_initial_simulation_values(self, generate_new_initial_values):
+        if generate_new_initial_values:
+            self.charging_station.load_initial_values()
+        else:
+            self.charging_station.generate_new_initial_values()
+
+    def render(self, mode="human"):
+        pass
+
+    def seed(self, seed=None):
+        # self.np_random, seed = seeding.np_random(seed)
+        # return [seed]
+        pass
+
+    def close(self):
+        # return 0
+        pass
