@@ -8,11 +8,11 @@ from smart_nanogrid_gym.utils.electric_vehicle import ElectricVehicle
 class ChargingStation:
     def __init__(self, number_of_chargers):
         self.NUMBER_OF_CHARGERS = number_of_chargers
-        self.vehicle_state_of_charge = None
-        self.arrivals = None
-        self.departures = None
-        self.charger_occupancy = None
-        self.total_vehicles_charging = None
+        self.vehicle_state_of_charge = np.zeros([self.NUMBER_OF_CHARGERS, 25])
+        self.charger_occupancy = np.zeros([self.NUMBER_OF_CHARGERS, 25])
+        self.arrivals = []
+        self.departures = []
+        self.total_vehicles_charging = np.zeros([24])
         self.departing_vehicles = []
         self.departure_times = []
         self.vehicle_state_of_charge_at_current_timestep = []
@@ -103,78 +103,90 @@ class ChargingStation:
         self.charger_occupancy = initial_values['Charger occupancy']
         self.total_vehicles_charging = initial_values['Total vehicles charging']
 
-    def generate_new_values(self):
-        arrivals = []
-        departures = []
-
-        vehicle_state_of_charge = np.zeros([self.NUMBER_OF_CHARGERS, 25])
-        charger_occupancy = np.zeros([self.NUMBER_OF_CHARGERS, 25])
-
-        # initial state stochastic creation
-        for charger in range(self.NUMBER_OF_CHARGERS):
-            is_vehicle_present = 0
-            total_occupancy_timesteps_per_charger = 0
-            arrival = 0
-
-            vehicle_arrivals = []
-            vehicle_departures = []
-
-            for hour in range(24):
-                if is_vehicle_present == 0:
-                    arrival = round(random.rand() - 0.1)
-                    if arrival == 1 and hour <= 20:
-                        random_integer = random.randint(20, 50)
-                        vehicle_state_of_charge[charger, hour] = random_integer / 100
-
-                        total_occupancy_timesteps_per_charger = total_occupancy_timesteps_per_charger + 1
-
-                        vehicle_arrivals.append(hour)
-                        upper_limit = min(hour + 10, 25)
-                        vehicle_departures.append(random.randint(hour + 4, int(upper_limit)))
-
-                if arrival == 1 and total_occupancy_timesteps_per_charger > 0:
-                    if hour < vehicle_departures[total_occupancy_timesteps_per_charger - 1]:
-                        is_vehicle_present = 1
-                        charger_occupancy[charger, hour] = 1
-                    else:
-                        is_vehicle_present = 0
-                        charger_occupancy[charger, hour] = 0
-                else:
-                    is_vehicle_present = 0
-                    charger_occupancy[charger, hour] = 0
-
-            arrivals.append(vehicle_arrivals)
-            departures.append(vehicle_departures)
-
-        # information vector creator
-        total_vehicles_charging = np.zeros([24])
-        for hour in range(24):
-            total_vehicles_charging[hour] = np.sum(charger_occupancy[:, hour])
-
-        self.vehicle_state_of_charge = vehicle_state_of_charge
-        self.arrivals = arrivals
-        self.departures = departures
-        self.charger_occupancy = charger_occupancy
-        self.total_vehicles_charging = total_vehicles_charging
+    def generate_new_initial_values(self):
+        initial_variables_cleared = self.clear_initialisation_variables()
+        initial_vehicle_presence_generated = self.generate_initial_vehicle_presence(initial_variables_cleared)
+        self.calculate_initial_total_vehicles_charging(initial_vehicle_presence_generated)
 
         generated_initial_values = {
-            'SOC': vehicle_state_of_charge,
-            'Arrivals': arrivals,
-            'Departures': departures,
-            'Total vehicles charging': total_vehicles_charging,
-            'Charger occupancy': charger_occupancy
+            'SOC': self.vehicle_state_of_charge,
+            'Arrivals': self.arrivals,
+            'Departures': self.departures,
+            'Charger occupancy': self.charger_occupancy,
+            'Total vehicles charging': self.total_vehicles_charging
         }
 
         savemat(data_files_directory_path + '\\initial_values.mat', generated_initial_values)
+
+    def clear_initialisation_variables(self):
+        try:
+            self.arrivals.clear()
+            self.departures.clear()
+            self.charger_occupancy.fill(0)
+            self.vehicle_state_of_charge.fill(0)
+            self.total_vehicles_charging.fill(0)
+            return True
+        except ValueError:
+            return False
+
+    def generate_initial_vehicle_presence(self, initial_variables_cleared):
+        if initial_variables_cleared:
+            for charger in range(self.NUMBER_OF_CHARGERS):
+                self.generate_initial_vehicle_presence_per_charger(charger)
+            return True
+        return False
+
+    def generate_initial_vehicle_presence_per_charger(self, charger):
+        vehicle_arrivals = []
+        vehicle_departures = []
+
+        vehicle_present = False
+        current_departure_time = 0
+
+        for hour in range(24):
+            if not vehicle_present:
+                arrival = round(random.rand() - 0.1)
+                if arrival == 1 and hour <= 20:
+                    vehicle_present = True
+
+                    self.generate_random_arrival_vehicle_state_of_charge(charger, hour)
+                    vehicle_arrivals.append(hour)
+
+                    current_departure_time = self.generate_random_vehicle_departure_time(hour)
+                    vehicle_departures.append(current_departure_time)
+
+            if vehicle_present and hour < current_departure_time:
+                self.charger_occupancy[charger, hour] = 1
+            else:
+                vehicle_present = False
+                self.charger_occupancy[charger, hour] = 0
+
+        self.arrivals.append(vehicle_arrivals)
+        self.departures.append(vehicle_departures)
+
+    def generate_random_arrival_vehicle_state_of_charge(self, charger, hour):
+        random_integer = random.randint(20, 50)
+        self.vehicle_state_of_charge[charger, hour] = random_integer / 100
+
+    def generate_random_vehicle_departure_time(self, hour):
+        upper_limit = min(hour + 10, 25)
+        return random.randint(hour + 4, int(upper_limit))
+
+    def calculate_initial_total_vehicles_charging(self, initial_vehicle_presence_generated):
+        if initial_vehicle_presence_generated:
+            for hour in range(24):
+                self.total_vehicles_charging[hour] = np.sum(self.charger_occupancy[:, hour])
 
     def calculate_charging_or_discharging_power(self, max_charging_power, action):
         return action * max_charging_power
 
     def calculate_next_vehicle_state_of_charge(self, power_value, hour, charger):
         if hour in self.arrivals[charger]:
-            self.vehicle_state_of_charge[charger, hour] = self.vehicle_state_of_charge[charger, hour] + power_value / self.electric_vehicle_info.battery_capacity
+            self.vehicle_state_of_charge[charger, hour] = self.vehicle_state_of_charge[
+                                                              charger, hour] + power_value / self.electric_vehicle_info.battery_capacity
         else:
-            self.vehicle_state_of_charge[charger, hour] = self.vehicle_state_of_charge[charger, hour - 1] + power_value / self.electric_vehicle_info.battery_capacity
+            self.vehicle_state_of_charge[charger, hour] = self.vehicle_state_of_charge[
+                                                              charger, hour - 1] + power_value / self.electric_vehicle_info.battery_capacity
             # soc[charger, timestep] = soc[charger, timestep - 1] + (charging_power[charger] * time_interval) / \
             #                          self.EV_PARAMETERS['CAPACITY']
 
@@ -199,9 +211,11 @@ class ChargingStation:
 
     def calculate_max_discharging_power(self, hour, charger):
         if hour in self.arrivals[charger]:
-            power_left_to_discharge = self.vehicle_state_of_charge[charger, hour] * self.electric_vehicle_info.battery_capacity
+            power_left_to_discharge = self.vehicle_state_of_charge[
+                                          charger, hour] * self.electric_vehicle_info.battery_capacity
         else:
-            power_left_to_discharge = self.vehicle_state_of_charge[charger, hour - 1] * self.electric_vehicle_info.battery_capacity
+            power_left_to_discharge = self.vehicle_state_of_charge[
+                                          charger, hour - 1] * self.electric_vehicle_info.battery_capacity
 
         max_discharging_energy = min([self.electric_vehicle_info.max_discharging_power, power_left_to_discharge])
         return max_discharging_energy

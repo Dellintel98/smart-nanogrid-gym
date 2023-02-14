@@ -115,7 +115,7 @@ class SmartNanogridEnv(gym.Env):
         if generate_new_initial_values:
             self.charging_station.load_initial_values()
         else:
-            self.charging_station.generate_new_values()
+            self.charging_station.generate_new_initial_values()
 
     def __get_observations(self):
         [departure_times, vehicles_state_of_charge] = self.charging_station.simulate(self.timestep)
