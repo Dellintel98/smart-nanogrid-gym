@@ -15,7 +15,7 @@ class CentralManagementSystem:
 
         if pv_system_available:
             renewable = energy['Available solar energy']
-            available_renewable_energy = renewable[0, hour]
+            available_renewable_energy = renewable[hour, 0]
         else:
             available_renewable_energy = 0
 
