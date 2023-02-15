@@ -12,16 +12,19 @@ from ..utils.config import data_files_directory_path
 
 
 class SmartNanogridEnv(gym.Env):
-    def __init__(self, price_model=1, pv_system_available_in_model=True):
+    def __init__(self, price_model=1, pv_system_available_in_model=True, battery_system_available_in_model=True,
+                 vehicle_to_everything=True, building_in_nanogrid=True, building_demand=True):
         self.NUMBER_OF_CHARGERS = 10
         self.NUMBER_OF_DAYS_TO_PREDICT = 1
         self.NUMBER_OF_HOURS_AHEAD = 3
         self.NUMBER_OF_DAYS_AHEAD = 1
         self.CURRENT_PRICE_MODEL = price_model
         self.PV_SYSTEM_AVAILABLE_IN_MODEL = pv_system_available_in_model
+        self.VEHICLE_TO_EVERYTHING = vehicle_to_everything
+        self.BUILDING_IN_NANOGRID = building_in_nanogrid
 
         self.charging_station = ChargingStation(self.NUMBER_OF_CHARGERS)
-        self.central_management_system = CentralManagementSystem()
+        self.central_management_system = CentralManagementSystem(battery_system_available_in_model, building_demand, building_in_nanogrid)
         if pv_system_available_in_model:
             self.pv_system_manager = PVSystemManager(self.NUMBER_OF_DAYS_TO_PREDICT, self.NUMBER_OF_DAYS_AHEAD)
 
@@ -43,16 +46,22 @@ class SmartNanogridEnv(gym.Env):
 
         self.total_amount_of_states = amount_of_states + amount_of_charger_predictions
 
-        low = np.array(np.zeros(self.total_amount_of_states), dtype=np.float32)
-        high = np.array(np.ones(self.total_amount_of_states), dtype=np.float32)
+        if vehicle_to_everything:
+            actions_low = -1
+        else:
+            actions_low = 0
+        actions_high = 1
+
+        spaces_low = np.array(np.zeros(self.total_amount_of_states), dtype=np.float32)
+        spaces_high = np.array(np.ones(self.total_amount_of_states), dtype=np.float32)
         self.action_space = spaces.Box(
-            low=-1,
-            high=1, shape=(self.NUMBER_OF_CHARGERS,),
+            low=actions_low,
+            high=actions_high, shape=(self.NUMBER_OF_CHARGERS,),
             dtype=np.float32
         )
         self.observation_space = spaces.Box(
-            low=low,
-            high=high,
+            low=spaces_low,
+            high=spaces_high,
             dtype=np.float32
         )
 
@@ -61,7 +70,8 @@ class SmartNanogridEnv(gym.Env):
         results = self.central_management_system.simulate(self.timestep, total_charging_power, self.energy,
                                                           self.energy_price, self.charging_station.departing_vehicles,
                                                           self.charging_station.vehicle_state_of_charge,
-                                                          self.PV_SYSTEM_AVAILABLE_IN_MODEL)
+                                                          self.PV_SYSTEM_AVAILABLE_IN_MODEL, self.VEHICLE_TO_EVERYTHING,
+                                                          self.BUILDING_IN_NANOGRID)
 
         self.total_cost_per_timestep.append(results['Total cost'])
         self.grid_energy_per_timestep.append(results['Grid energy'])
