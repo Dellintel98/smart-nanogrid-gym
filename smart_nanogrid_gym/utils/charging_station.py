@@ -18,9 +18,9 @@ class ChargingStation:
         self.vehicle_state_of_charge_at_current_timestep = []
         self.charger_power_values = np.zeros(self.NUMBER_OF_CHARGERS)
 
-        self.electric_vehicle_info = ElectricVehicle(battery_capacity=30, charging_efficiency=0.91,
-                                                     discharging_efficiency=0.91, max_charging_power=11,
-                                                     max_discharging_power=11)
+        self.electric_vehicle_info = ElectricVehicle(battery_capacity=30, charging_efficiency=0.95,
+                                                     discharging_efficiency=0.95, max_charging_power=22,
+                                                     max_discharging_power=22)
 
     def simulate(self, current_timestep):
         self.find_departing_vehicles(current_timestep)

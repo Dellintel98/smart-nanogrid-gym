@@ -13,7 +13,9 @@ class CentralManagementSystem:
 
     def initialise_battery_system(self, battery_system_available_in_model):
         if battery_system_available_in_model:
-            return BatteryEnergyStorageSystem(20, 0.5, 0.91, 0.91, 11, 11, 0.2)
+            return BatteryEnergyStorageSystem(30, 0.5, 0.95, 0.95, 22, 22, 0.15)
+            # return BatteryEnergyStorageSystem(1000, 0.5, 0.95, 0.95, 22, 22, 0.15)
+            # return BatteryEnergyStorageSystem(1000, 0.5, 0.95, 0.95, 600, 600, 0.15)
         else:
             return None
 
@@ -53,12 +55,18 @@ class CentralManagementSystem:
 
         self.calculate_total_cost(insufficiently_charged_vehicles_penalty)
 
+        if self.baterry_system:
+            battery_soc = self.baterry_system.current_battery_capacity
+        else:
+            battery_soc = 0
+
         return {
             'Total cost': self.total_cost,
             'Grid energy': grid_energy,
             'Utilized renewable energy': available_renewable_energy,
             'Insufficiently charged vehicles penalty': insufficiently_charged_vehicles_penalty,
-            'EV state of charge': soc
+            'EV state of charge': soc,
+            'Battery state of charge': battery_soc
         }
 
     def calculate_grid_energy(self, total_power, available_renewable_energy, hour, vehicle_to_everything,
@@ -68,15 +76,16 @@ class CentralManagementSystem:
         # else:
         #     current_building_exclusive_demand = 0
 
-        if building_in_nanogrid:
-            # if current_building_exclusive_demand:
-            #     grid_energy = 0
-            #     return grid_energy
-
-            building_demand = self.building_demand[hour]
-            remaining_energy_demand = building_demand + total_power - available_renewable_energy
-        else:
-            remaining_energy_demand = total_power - available_renewable_energy
+        # if building_in_nanogrid:
+        #     # if current_building_exclusive_demand:
+        #     #     grid_energy = 0
+        #     #     return grid_energy
+        #
+        #     building_demand = self.building_demand[hour]
+        #     remaining_energy_demand = building_demand + total_power - available_renewable_energy
+        # else:
+        #     remaining_energy_demand = total_power - available_renewable_energy
+        remaining_energy_demand = total_power - available_renewable_energy
 
         if not self.baterry_system:
             if remaining_energy_demand == 0:
@@ -156,13 +165,21 @@ class CentralManagementSystem:
         self.total_cost = self.grid_energy_cost + total_penalty
 
     def get_energy_price(self, current_price_model, experiment_length_in_days):
-        price_day = self.get_price_day(current_price_model)
+        grid_tariff_high = 0.028
+        grid_tariff_low = 0.013333333
+        energy_tariff_high = 0.148933333
+        energy_tariff_low = 0.087613333
+        res_incentive = 0.014
+        high_tariff = grid_tariff_high + energy_tariff_high + res_incentive
+        low_tariff = grid_tariff_low + energy_tariff_low + res_incentive
+
+        price_day = self.get_price_day(current_price_model, low_tariff=low_tariff, high_tariff=high_tariff)
         price = zeros((experiment_length_in_days, 2 * 24))
         for day in range(0, experiment_length_in_days):
             price[day, :] = price_day
         return price
 
-    def get_price_day(self, current_price_model, low_tariff=0, high_tariff=0):
+    def get_price_day(self, current_price_model, low_tariff=0.0, high_tariff=0.0):
         price_day = []
         if current_price_model == 0:
             price_day = array([low_tariff, low_tariff, low_tariff, low_tariff, low_tariff, low_tariff, low_tariff,

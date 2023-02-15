@@ -12,9 +12,9 @@ from ..utils.config import data_files_directory_path
 
 
 class SmartNanogridEnv(gym.Env):
-    def __init__(self, price_model=1, pv_system_available_in_model=True, battery_system_available_in_model=True,
-                 vehicle_to_everything=True, building_in_nanogrid=True, building_demand=True):
-        self.NUMBER_OF_CHARGERS = 10
+    def __init__(self, price_model=0, pv_system_available_in_model=True, battery_system_available_in_model=True,
+                 vehicle_to_everything=True, building_in_nanogrid=False, building_demand=False):
+        self.NUMBER_OF_CHARGERS = 8
         self.NUMBER_OF_DAYS_TO_PREDICT = 1
         self.NUMBER_OF_HOURS_AHEAD = 3
         self.NUMBER_OF_DAYS_AHEAD = 1
@@ -35,6 +35,7 @@ class SmartNanogridEnv(gym.Env):
         self.energy_price = None
         self.grid_energy_per_timestep, self.renewable_energy_utilization_per_timestep = None, None
         self.total_cost_per_timestep, self.penalty_per_timestep = None, None
+        self.battery_per_timestep = None
 
         self.simulated_single_day = False
 
@@ -78,6 +79,7 @@ class SmartNanogridEnv(gym.Env):
         self.renewable_energy_utilization_per_timestep.append(results['Utilized renewable energy'])
         self.penalty_per_timestep.append(results['Insufficiently charged vehicles penalty'])
         self.charging_station.vehicle_state_of_charge = results['EV state of charge']
+        self.battery_per_timestep.append(results['Battery state of charge'])
 
         self.timestep = self.timestep + 1
         observations = self.__get_observations()
@@ -149,17 +151,19 @@ class SmartNanogridEnv(gym.Env):
             'Utilized renewable energy': self.renewable_energy_utilization_per_timestep,
             'Penalties': self.penalty_per_timestep,
             'Available renewable energy': available_renewable_energy,
-            'Total cost': self.total_cost_per_timestep
+            'Total cost': self.total_cost_per_timestep,
+            'Battery state of charge': self.battery_per_timestep
         }
         savemat(data_files_directory_path + '\\prediction_results.mat', {'Prediction results': prediction_results})
 
-    def reset(self, generate_new_initial_values=True):
+    def reset(self, generate_new_initial_values=False):
         self.timestep = 0
         self.simulated_single_day = False
         self.total_cost_per_timestep = []
         self.grid_energy_per_timestep = []
         self.renewable_energy_utilization_per_timestep = []
         self.penalty_per_timestep = []
+        self.battery_per_timestep = []
 
         if self.PV_SYSTEM_AVAILABLE_IN_MODEL:
             self.energy = self.pv_system_manager.get_solar_energy()
