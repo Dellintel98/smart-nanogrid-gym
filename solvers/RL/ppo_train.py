@@ -32,7 +32,7 @@ param_noise = None
 action_noise = OrnsteinUhlenbeckActionNoise(mean=np.zeros(n_actions), sigma=float(0.5) * np.ones(n_actions))
 
 # model = DDPG(MlpPolicy, env, verbose=1, action_noise=action_noise, tensorboard_log=logdir)
-model = PPO("MlpPolicy", env, verbose=1, tensorboard_log=logdir)
+model = PPO("MlpPolicy", env, verbose=1, tensorboard_log=logdir, device='cuda')
 
 TIMESTEPS = 20000
 for i in range(1, 50):

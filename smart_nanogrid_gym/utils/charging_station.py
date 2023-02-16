@@ -1,7 +1,7 @@
 import numpy as np
 from numpy import random
 from scipy.io import loadmat, savemat
-from config import data_files_directory_path
+from .config import data_files_directory_path
 from smart_nanogrid_gym.utils.electric_vehicle import ElectricVehicle
 
 
