@@ -154,7 +154,7 @@ class SmartNanogridEnv(gym.Env):
             'Total_cost': self.total_cost_per_timestep,
             'Battery_state_of_charge': self.battery_per_timestep
         }
-        savemat(data_files_directory_path + '\\prediction_results.mat', {'Prediction results': prediction_results})
+        savemat(data_files_directory_path + '\\prediction_results.mat', {'Prediction_results': prediction_results})
 
     def reset(self, generate_new_initial_values=True):
         self.timestep = 0

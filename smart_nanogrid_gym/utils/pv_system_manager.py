@@ -2,7 +2,7 @@ from numpy import mean, reshape, zeros
 from scipy.io import loadmat
 
 from smart_nanogrid_gym.utils.pv_system import PVSystem
-from .config import data_files_directory_path
+from smart_nanogrid_gym.utils.config import data_files_directory_path
 
 
 class PVSystemManager:

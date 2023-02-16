@@ -1,7 +1,7 @@
 import numpy as np
 from numpy import random
 from scipy.io import loadmat, savemat
-from .config import data_files_directory_path
+from smart_nanogrid_gym.utils.config import data_files_directory_path
 from smart_nanogrid_gym.utils.electric_vehicle import ElectricVehicle
 
 
@@ -84,10 +84,10 @@ class ChargingStation:
         departure_times = initial_values['Departures']
 
         for charger in range(self.NUMBER_OF_CHARGERS):
-            if arrival_times.shape == (1, 10):
+            if arrival_times.shape == (1, self.NUMBER_OF_CHARGERS):
                 arrivals = arrival_times[0][charger][0]
                 departures = departure_times[0][charger][0]
-            elif arrival_times.shape == (10, 3):
+            elif arrival_times.shape == (self.NUMBER_OF_CHARGERS, 3):
                 arrivals = arrival_times[charger]
                 departures = departure_times[charger]
             else:
