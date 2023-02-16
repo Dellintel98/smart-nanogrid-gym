@@ -118,7 +118,7 @@ class CentralManagementSystem:
                 grid_energy = remaining_energy_demand
         else:
             remaining_available_renewable_energy = available_renewable_energy - total_power
-            capacity_available_to_charge = self.baterry_system.max_battery_capacity - self.baterry_system.current_battery_capacity
+            capacity_available_to_charge = 1 - self.baterry_system.current_battery_capacity
 
             if capacity_available_to_charge > 0:
                 power_available_for_charge = capacity_available_to_charge * self.baterry_system.max_battery_capacity

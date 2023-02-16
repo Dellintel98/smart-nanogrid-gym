@@ -80,8 +80,8 @@ class SmartNanogridEnv(gym.Env):
         self.penalty_per_timestep.append(results['Insufficiently charged vehicles penalty'])
         self.battery_per_timestep.append(results['Battery state of charge'])
 
-        self.timestep = self.timestep + 1
         observations = self.__get_observations()
+        self.timestep = self.timestep + 1
 
         self.simulated_single_day = self.__check_is_single_day_simulated()
         if self.simulated_single_day:
