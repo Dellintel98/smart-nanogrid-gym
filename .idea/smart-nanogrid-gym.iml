@@ -5,7 +5,7 @@
       <excludeFolder url="file://$MODULE_DIR$/smart_nanogrid_gym.egg-info" />
       <excludeFolder url="file://$MODULE_DIR$/venv" />
     </content>
-    <orderEntry type="jdk" jdkName="smart-nanogrid-gym" jdkType="Python SDK" />
+    <orderEntry type="jdk" jdkName="Python 3.9 (smart-nanogrid-gym)" jdkType="Python SDK" />
     <orderEntry type="sourceFolder" forTests="false" />
   </component>
 </module>
