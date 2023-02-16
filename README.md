@@ -1,4 +1,5 @@
-﻿# Smart Nanogrid Gym
+﻿Development in progress...
+# Smart Nanogrid Gym
 
 
 ## Chargym Description
