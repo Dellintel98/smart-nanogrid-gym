@@ -156,7 +156,7 @@ class SmartNanogridEnv(gym.Env):
         }
         savemat(data_files_directory_path + '\\prediction_results.mat', {'Prediction results': prediction_results})
 
-    def reset(self, generate_new_initial_values=False):
+    def reset(self, generate_new_initial_values=True):
         self.timestep = 0
         self.simulated_single_day = False
         self.total_cost_per_timestep = []
