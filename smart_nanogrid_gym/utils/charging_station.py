@@ -97,8 +97,8 @@ class ChargingStation:
             self.departures.append(departures.tolist())
 
         self.vehicle_state_of_charge = initial_values['SOC']
-        self.charger_occupancy = initial_values['Charger occupancy']
-        self.total_vehicles_charging = initial_values['Total vehicles charging']
+        self.charger_occupancy = initial_values['Charger_occupancy']
+        self.total_vehicles_charging = initial_values['Total_vehicles_charging']
 
     def clear_initialisation_variables(self):
         try:
@@ -120,8 +120,8 @@ class ChargingStation:
             'SOC': self.vehicle_state_of_charge,
             'Arrivals': self.arrivals,
             'Departures': self.departures,
-            'Charger occupancy': self.charger_occupancy,
-            'Total vehicles charging': self.total_vehicles_charging
+            'Charger_occupancy': self.charger_occupancy,
+            'Total_vehicles_charging': self.total_vehicles_charging
         }
 
         savemat(data_files_directory_path + '\\initial_values.mat', generated_initial_values)

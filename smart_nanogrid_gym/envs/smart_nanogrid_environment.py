@@ -147,12 +147,12 @@ class SmartNanogridEnv(gym.Env):
 
         prediction_results = {
             'SOC': self.charging_station.vehicle_state_of_charge,
-            'Grid energy': self.grid_energy_per_timestep,
-            'Utilized renewable energy': self.renewable_energy_utilization_per_timestep,
+            'Grid_energy': self.grid_energy_per_timestep,
+            'Utilized_renewable_energy': self.renewable_energy_utilization_per_timestep,
             'Penalties': self.penalty_per_timestep,
-            'Available renewable energy': available_renewable_energy,
-            'Total cost': self.total_cost_per_timestep,
-            'Battery state of charge': self.battery_per_timestep
+            'Available_renewable_energy': available_renewable_energy,
+            'Total_cost': self.total_cost_per_timestep,
+            'Battery_state_of_charge': self.battery_per_timestep
         }
         savemat(data_files_directory_path + '\\prediction_results.mat', {'Prediction results': prediction_results})
 
