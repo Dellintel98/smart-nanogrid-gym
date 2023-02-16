@@ -65,7 +65,6 @@ class CentralManagementSystem:
             'Grid energy': grid_energy,
             'Utilized renewable energy': available_renewable_energy,
             'Insufficiently charged vehicles penalty': insufficiently_charged_vehicles_penalty,
-            'EV state of charge': soc,
             'Battery state of charge': battery_soc
         }
 
@@ -128,12 +127,21 @@ class CentralManagementSystem:
 
                 if temp_remaining_available_renewable_energy == 0:
                     grid_energy = 0
+                    temp_bess_cap = self.baterry_system.current_battery_capacity + max_charging_energy / self.baterry_system.max_battery_capacity
+                    if temp_bess_cap > 1:
+                        breakpoint()
                 elif temp_remaining_available_renewable_energy > 0:
+                    temp_bess_cap = self.baterry_system.current_battery_capacity + max_charging_energy / self.baterry_system.max_battery_capacity
+                    if temp_bess_cap > 1:
+                        breakpoint()
                     if vehicle_to_everything:
                         grid_energy = -temp_remaining_available_renewable_energy
                     else:
                         grid_energy = 0
                 else:
+                    temp_bess_cap = self.baterry_system.current_battery_capacity + max_charging_energy / self.baterry_system.max_battery_capacity
+                    if temp_bess_cap > 1:
+                        breakpoint()
                     max_charging_energy = remaining_available_renewable_energy
                     grid_energy = 0
 

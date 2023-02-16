@@ -78,7 +78,6 @@ class SmartNanogridEnv(gym.Env):
         self.grid_energy_per_timestep.append(results['Grid energy'])
         self.renewable_energy_utilization_per_timestep.append(results['Utilized renewable energy'])
         self.penalty_per_timestep.append(results['Insufficiently charged vehicles penalty'])
-        self.charging_station.vehicle_state_of_charge = results['EV state of charge']
         self.battery_per_timestep.append(results['Battery state of charge'])
 
         self.timestep = self.timestep + 1
@@ -141,7 +140,7 @@ class SmartNanogridEnv(gym.Env):
 
     def __save_prediction_results(self):
         if self.PV_SYSTEM_AVAILABLE_IN_MODEL:
-            available_renewable_energy = self.energy['Available solar energy']
+            available_renewable_energy = self.energy['Available solar energy'].T
         else:
             available_renewable_energy = []
 
