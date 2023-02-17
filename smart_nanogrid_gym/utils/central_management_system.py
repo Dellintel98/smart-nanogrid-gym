@@ -13,9 +13,7 @@ class CentralManagementSystem:
 
     def initialise_battery_system(self, battery_system_available_in_model):
         if battery_system_available_in_model:
-            return BatteryEnergyStorageSystem(30, 0.5, 0.95, 0.95, 22, 22, 0.15)
-            # return BatteryEnergyStorageSystem(1000, 0.5, 0.95, 0.95, 22, 22, 0.15)
-            # return BatteryEnergyStorageSystem(1000, 0.5, 0.95, 0.95, 600, 600, 0.15)
+            return BatteryEnergyStorageSystem(80, 0.5, 0.95, 0.95, 44, 44, 0.15)
         else:
             return None
 

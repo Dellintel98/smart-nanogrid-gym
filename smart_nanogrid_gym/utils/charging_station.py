@@ -18,7 +18,7 @@ class ChargingStation:
         self.vehicle_state_of_charge_at_current_timestep = []
         self.charger_power_values = np.zeros(self.NUMBER_OF_CHARGERS)
 
-        self.electric_vehicle_info = ElectricVehicle(battery_capacity=30, charging_efficiency=0.95,
+        self.electric_vehicle_info = ElectricVehicle(battery_capacity=40, charging_efficiency=0.95,
                                                      discharging_efficiency=0.95, max_charging_power=22,
                                                      max_discharging_power=22)
 
