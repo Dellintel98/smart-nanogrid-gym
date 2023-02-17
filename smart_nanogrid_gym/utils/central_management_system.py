@@ -65,7 +65,8 @@ class CentralManagementSystem:
             'Grid energy': grid_energy,
             'Utilized renewable energy': available_renewable_energy,
             'Insufficiently charged vehicles penalty': insufficiently_charged_vehicles_penalty,
-            'Battery state of charge': battery_soc
+            'Battery state of charge': battery_soc,
+            'Grid energy cost': self.grid_energy_cost
         }
 
     def calculate_grid_energy(self, total_power, available_renewable_energy, hour, vehicle_to_everything,
@@ -128,20 +129,20 @@ class CentralManagementSystem:
                 if temp_remaining_available_renewable_energy == 0:
                     grid_energy = 0
                     temp_bess_cap = self.battery_system.current_battery_capacity + max_charging_energy / self.battery_system.max_battery_capacity
-                    if temp_bess_cap > 1:
-                        breakpoint()
+                    # if temp_bess_cap > 1:
+                    #     breakpoint()
                 elif temp_remaining_available_renewable_energy > 0:
                     temp_bess_cap = self.battery_system.current_battery_capacity + max_charging_energy / self.battery_system.max_battery_capacity
-                    if temp_bess_cap > 1:
-                        breakpoint()
+                    # if temp_bess_cap > 1:
+                    #     breakpoint()
                     if vehicle_to_everything:
                         grid_energy = -temp_remaining_available_renewable_energy
                     else:
                         grid_energy = 0
                 else:
-                    temp_bess_cap = self.battery_system.current_battery_capacity + max_charging_energy / self.battery_system.max_battery_capacity
-                    if temp_bess_cap > 1:
-                        breakpoint()
+                    # temp_bess_cap = self.battery_system.current_battery_capacity + max_charging_energy / self.battery_system.max_battery_capacity
+                    # if temp_bess_cap > 1:
+                    #     breakpoint()
                     max_charging_energy = remaining_available_renewable_energy
                     grid_energy = 0
 
@@ -165,7 +166,7 @@ class CentralManagementSystem:
         return sum(penalties_per_departing_vehicle)
 
     def calculate_insufficiently_charged_penalty_per_vehicle(self, vehicle, soc, hour):
-        uncharged_capacity = 1 - soc[vehicle, hour + 1]
+        uncharged_capacity = 1 - soc[vehicle, hour - 1]
         penalty = (uncharged_capacity * 2) ** 2
         return penalty
 

@@ -34,7 +34,8 @@ action_noise = OrnsteinUhlenbeckActionNoise(mean=np.zeros(n_actions), sigma=floa
 # model = DDPG(MlpPolicy, env, verbose=1, action_noise=action_noise, tensorboard_log=logdir)
 model = PPO("MlpPolicy", env, verbose=1, tensorboard_log=logdir)
 
-TIMESTEPS = 20000
+# TIMESTEPS = 20000
+TIMESTEPS = 200
 for i in range(1, 50):
     model.learn(total_timesteps=TIMESTEPS, reset_num_timesteps=False, tb_log_name="PPO")
     model.save(f"{models_dir}/{TIMESTEPS * i}")

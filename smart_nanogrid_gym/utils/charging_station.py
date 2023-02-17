@@ -12,7 +12,7 @@ class ChargingStation:
         self.charger_occupancy = np.zeros([self.NUMBER_OF_CHARGERS, 25])
         self.arrivals = []
         self.departures = []
-        self.total_vehicles_charging = np.zeros([24])
+        self.total_vehicles_charging = np.zeros(24)
         self.departing_vehicles = []
         self.departure_times = []
         self.vehicle_state_of_charge_at_current_timestep = []
@@ -106,7 +106,7 @@ class ChargingStation:
             self.departures.clear()
             self.charger_occupancy.fill(0)
             self.vehicle_state_of_charge.fill(0)
-            self.total_vehicles_charging.fill(0)
+            self.total_vehicles_charging = np.zeros(24)
             return True
         except ValueError:
             return False
@@ -172,7 +172,9 @@ class ChargingStation:
     def calculate_initial_total_vehicles_charging(self, initial_vehicle_presence_generated):
         if initial_vehicle_presence_generated:
             for hour in range(24):
-                self.total_vehicles_charging[hour] = np.sum(self.charger_occupancy[:, hour])
+                hour_occupancy = self.charger_occupancy[:, hour]
+                occupancy_total = hour_occupancy.sum()
+                self.total_vehicles_charging[hour] = occupancy_total
 
     def simulate_vehicle_charging(self, actions, current_timestep):
         # hour = self.timestep
@@ -225,12 +227,13 @@ class ChargingStation:
         return action * max_charging_power
 
     def calculate_next_vehicle_state_of_charge(self, power_value, hour, charger):
+        state_of_charge_value_change = power_value / self.electric_vehicle_info.battery_capacity
         if hour in self.arrivals[charger]:
             self.vehicle_state_of_charge[charger, hour] = self.vehicle_state_of_charge[
-                                                              charger, hour] + power_value / self.electric_vehicle_info.battery_capacity
+                                                              charger, hour] + state_of_charge_value_change
         else:
             self.vehicle_state_of_charge[charger, hour] = self.vehicle_state_of_charge[
-                                                              charger, hour - 1] + power_value / self.electric_vehicle_info.battery_capacity
+                                                              charger, hour - 1] + state_of_charge_value_change
             # soc[charger, timestep] = soc[charger, timestep - 1] + (charging_power[charger] * time_interval) / \
             #                          self.EV_PARAMETERS['CAPACITY']
 

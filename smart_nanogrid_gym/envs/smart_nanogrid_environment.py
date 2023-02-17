@@ -35,7 +35,7 @@ class SmartNanogridEnv(gym.Env):
         self.energy_price = None
         self.grid_energy_per_timestep, self.renewable_energy_utilization_per_timestep = None, None
         self.total_cost_per_timestep, self.penalty_per_timestep = None, None
-        self.battery_per_timestep = None
+        self.battery_per_timestep, self.grid_energy_cost_per_timestep = None, None
 
         self.simulated_single_day = False
 
@@ -79,6 +79,7 @@ class SmartNanogridEnv(gym.Env):
         self.renewable_energy_utilization_per_timestep.append(results['Utilized renewable energy'])
         self.penalty_per_timestep.append(results['Insufficiently charged vehicles penalty'])
         self.battery_per_timestep.append(results['Battery state of charge'])
+        self.grid_energy_cost_per_timestep.append(results['Total cost'])
 
         observations = self.__get_observations()
         self.timestep = self.timestep + 1
@@ -112,7 +113,7 @@ class SmartNanogridEnv(gym.Env):
             )
         else:
             normalized_disturbances_observation_at_current_timestep = np.array([
-                self.energy_price[0, self.timestep] / 0.1
+                self.energy_price[0, self.timestep] / self.energy_price.max
             ])
 
             normalized_predictions = np.array([self.energy_price[0, min_timesteps_ahead:max_timesteps_ahead] / 0.1])
@@ -151,7 +152,8 @@ class SmartNanogridEnv(gym.Env):
             'Penalties': self.penalty_per_timestep,
             'Available_renewable_energy': available_renewable_energy,
             'Total_cost': self.total_cost_per_timestep,
-            'Battery_state_of_charge': self.battery_per_timestep
+            'Battery_state_of_charge': self.battery_per_timestep,
+            'Grid_energy_cost': self.grid_energy_cost_per_timestep
         }
         savemat(data_files_directory_path + '\\prediction_results.mat', {'Prediction_results': prediction_results})
 
@@ -163,6 +165,7 @@ class SmartNanogridEnv(gym.Env):
         self.renewable_energy_utilization_per_timestep = []
         self.penalty_per_timestep = []
         self.battery_per_timestep = []
+        self.grid_energy_cost_per_timestep = []
 
         if self.PV_SYSTEM_AVAILABLE_IN_MODEL:
             self.energy = self.pv_system_manager.get_solar_energy()
@@ -175,9 +178,9 @@ class SmartNanogridEnv(gym.Env):
 
     def __load_initial_simulation_values(self, generate_new_initial_values):
         if generate_new_initial_values:
-            self.charging_station.load_initial_values()
-        else:
             self.charging_station.generate_new_initial_values()
+        else:
+            self.charging_station.load_initial_values()
 
     def render(self, mode="human"):
         pass

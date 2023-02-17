@@ -21,9 +21,9 @@ env = gym.make(args.env)
 
 # Define which model to load
 # PPO Model 1
-model_name1 = "PPO-1674483126"
+model_name1 = "PPO-1676639715"
 models_dir1 = f"{solvers_files_directory_path}\\RL\\models\\{model_name1}"
-model_path1 = f"{models_dir1}\\940000"
+model_path1 = f"{models_dir1}\\9800"
 model1 = PPO.load(model_path1, env=env)
 
 # How many evaluations
@@ -38,12 +38,8 @@ for ep in range(episodes):
     rewards_list_PPO_1 = []
     rewards_list_rbc = []
 
-    if ep == 0:
-        obs = env.reset(reset_flag=1)
-    else:
-        obs = env.reset(reset_flag=0)
-
     # PPO
+    obs = env.reset(generate_new_initial_values=True)
     done = False
     while not done:
         action, _states = model1.predict(obs)
@@ -52,7 +48,7 @@ for ep in range(episodes):
     final_reward_PPO_1[ep] = sum(rewards_list_PPO_1)
 
     # RBC case
-    obs = env.reset(reset_flag=1)
+    obs = env.reset(generate_new_initial_values=False)
     done = False
     while not done:
         action_rbc = RBC.select_action(env.env, obs)

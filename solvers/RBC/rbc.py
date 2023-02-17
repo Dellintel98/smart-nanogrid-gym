@@ -4,14 +4,14 @@ import numpy as np
 class RBC:
 
     def select_action(self, states):
-        action=[0,0,0,0,0,0,0,0,0,0]
-        for car in range(self.number_of_cars):
+        action=[0,0,0,0,0,0,0,0]
+        for car in range(self.NUMBER_OF_CHARGERS):
             #the departure hour for every spot is placed on the last 10 positions in states vector(10 spots)
             #have in mind that departure time is normalized in [0,1] so if T_leave is within the next 3 hours then
             #action[car]=1, else action[car]=solar_radiation or action[car]={mean value of solar radiation and the predicted one hour radiation}
-            if states[18+car]==0:
+            if states[16+car]==0:
                 action[car]=0
-            elif states[18+car]>0 and states[18+car]<0.16667:
+            elif states[16+car]>0 and states[16+car]<0.16667:
                 action[car]=1
             else:
                 #solar ratiation is states[0] and the predictions on ratiation are states[2],states[3],states[4]
