@@ -7,7 +7,7 @@ class CentralManagementSystem:
     def __init__(self, battery_system_available_in_model, building_demand, building_in_nanogrid):
         self.total_cost = 0
         self.grid_energy_cost = 0
-        self.baterry_system = self.initialise_battery_system(battery_system_available_in_model)
+        self.battery_system = self.initialise_battery_system(battery_system_available_in_model)
         self.building_demand = self.initialise_building_demand(building_in_nanogrid)
         self.building_exclusive_demand = self.initialise_building_exclusive_demand(building_demand)
 
@@ -55,8 +55,8 @@ class CentralManagementSystem:
 
         self.calculate_total_cost(insufficiently_charged_vehicles_penalty)
 
-        if self.baterry_system:
-            battery_soc = self.baterry_system.current_battery_capacity
+        if self.battery_system:
+            battery_soc = self.battery_system.current_battery_capacity
         else:
             battery_soc = 0
 
@@ -86,7 +86,7 @@ class CentralManagementSystem:
         #     remaining_energy_demand = total_power - available_renewable_energy
         remaining_energy_demand = total_power - available_renewable_energy
 
-        if not self.baterry_system:
+        if not self.battery_system:
             if remaining_energy_demand == 0:
                 grid_energy = 0
             else:
@@ -99,10 +99,10 @@ class CentralManagementSystem:
         if remaining_energy_demand == 0:
             grid_energy = 0
         elif remaining_energy_demand > 0:
-            capacity_available_to_discharge = self.baterry_system.current_battery_capacity - self.baterry_system.depth_of_discharge
+            capacity_available_to_discharge = self.battery_system.current_battery_capacity - self.battery_system.depth_of_discharge
             if capacity_available_to_discharge > 0:
-                power_available_for_discharge = capacity_available_to_discharge * self.baterry_system.max_battery_capacity
-                max_discharging_energy = min([self.baterry_system.max_discharging_power, power_available_for_discharge])
+                power_available_for_discharge = capacity_available_to_discharge * self.battery_system.max_battery_capacity
+                max_discharging_energy = min([self.battery_system.max_discharging_power, power_available_for_discharge])
                 temp_remaining_energy_demand = remaining_energy_demand - max_discharging_energy
 
                 if temp_remaining_energy_demand == 0:
@@ -113,25 +113,25 @@ class CentralManagementSystem:
                     max_discharging_energy = remaining_energy_demand
                     grid_energy = 0
 
-                self.baterry_system.current_battery_capacity = self.baterry_system.current_battery_capacity - max_discharging_energy / self.baterry_system.max_battery_capacity
+                self.battery_system.current_battery_capacity = self.battery_system.current_battery_capacity - max_discharging_energy / self.battery_system.max_battery_capacity
             else:
                 grid_energy = remaining_energy_demand
         else:
             remaining_available_renewable_energy = available_renewable_energy - total_power
-            capacity_available_to_charge = 1 - self.baterry_system.current_battery_capacity
+            capacity_available_to_charge = 1 - self.battery_system.current_battery_capacity
 
             if capacity_available_to_charge > 0:
-                power_available_for_charge = capacity_available_to_charge * self.baterry_system.max_battery_capacity
-                max_charging_energy = min([self.baterry_system.max_charging_power, power_available_for_charge])
+                power_available_for_charge = capacity_available_to_charge * self.battery_system.max_battery_capacity
+                max_charging_energy = min([self.battery_system.max_charging_power, power_available_for_charge])
                 temp_remaining_available_renewable_energy = remaining_available_renewable_energy - max_charging_energy
 
                 if temp_remaining_available_renewable_energy == 0:
                     grid_energy = 0
-                    temp_bess_cap = self.baterry_system.current_battery_capacity + max_charging_energy / self.baterry_system.max_battery_capacity
+                    temp_bess_cap = self.battery_system.current_battery_capacity + max_charging_energy / self.battery_system.max_battery_capacity
                     if temp_bess_cap > 1:
                         breakpoint()
                 elif temp_remaining_available_renewable_energy > 0:
-                    temp_bess_cap = self.baterry_system.current_battery_capacity + max_charging_energy / self.baterry_system.max_battery_capacity
+                    temp_bess_cap = self.battery_system.current_battery_capacity + max_charging_energy / self.battery_system.max_battery_capacity
                     if temp_bess_cap > 1:
                         breakpoint()
                     if vehicle_to_everything:
@@ -139,13 +139,13 @@ class CentralManagementSystem:
                     else:
                         grid_energy = 0
                 else:
-                    temp_bess_cap = self.baterry_system.current_battery_capacity + max_charging_energy / self.baterry_system.max_battery_capacity
+                    temp_bess_cap = self.battery_system.current_battery_capacity + max_charging_energy / self.battery_system.max_battery_capacity
                     if temp_bess_cap > 1:
                         breakpoint()
                     max_charging_energy = remaining_available_renewable_energy
                     grid_energy = 0
 
-                self.baterry_system.current_battery_capacity = self.baterry_system.current_battery_capacity + max_charging_energy / self.baterry_system.max_battery_capacity
+                self.battery_system.current_battery_capacity = self.battery_system.current_battery_capacity + max_charging_energy / self.battery_system.max_battery_capacity
             else:
                 if vehicle_to_everything:
                     grid_energy = remaining_energy_demand
