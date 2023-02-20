@@ -1,6 +1,8 @@
 import numpy as np
 from numpy import random
 from scipy.io import loadmat, savemat
+
+from smart_nanogrid_gym.utils.charger import Charger
 from smart_nanogrid_gym.utils.config import data_files_directory_path
 from smart_nanogrid_gym.utils.electric_vehicle import ElectricVehicle
 
@@ -8,6 +10,7 @@ from smart_nanogrid_gym.utils.electric_vehicle import ElectricVehicle
 class ChargingStation:
     def __init__(self, number_of_chargers):
         self.NUMBER_OF_CHARGERS = number_of_chargers
+        self.chargers = [Charger() for _ in range(self.NUMBER_OF_CHARGERS)]
         self.vehicle_state_of_charge = np.zeros([self.NUMBER_OF_CHARGERS, 25])
         self.charger_occupancy = np.zeros([self.NUMBER_OF_CHARGERS, 25])
         self.arrivals = []
@@ -18,7 +21,7 @@ class ChargingStation:
         self.vehicle_state_of_charge_at_current_timestep = []
         self.charger_power_values = np.zeros(self.NUMBER_OF_CHARGERS)
 
-        self.electric_vehicle_info = ElectricVehicle(battery_capacity=40, charging_efficiency=0.95,
+        self.electric_vehicle_info = ElectricVehicle(battery_capacity=40, current_capacity=0, charging_efficiency=0.95,
                                                      discharging_efficiency=0.95, max_charging_power=22,
                                                      max_discharging_power=22)
 
@@ -83,6 +86,10 @@ class ChargingStation:
         arrival_times = initial_values['Arrivals']
         departure_times = initial_values['Departures']
 
+        self.vehicle_state_of_charge = initial_values['SOC']
+        self.charger_occupancy = initial_values['Charger_occupancy']
+        self.total_vehicles_charging = initial_values['Total_vehicles_charging']
+
         for charger in range(self.NUMBER_OF_CHARGERS):
             if arrival_times.shape == (1, self.NUMBER_OF_CHARGERS):
                 arrivals = arrival_times[0][charger][0]
@@ -95,10 +102,8 @@ class ChargingStation:
 
             self.arrivals.append(arrivals.tolist())
             self.departures.append(departures.tolist())
-
-        self.vehicle_state_of_charge = initial_values['SOC']
-        self.charger_occupancy = initial_values['Charger_occupancy']
-        self.total_vehicles_charging = initial_values['Total_vehicles_charging']
+            self.chargers[charger].vehicle_arrivals = self.arrivals[charger]
+            self.chargers[charger].vehicle_state_of_charge = self.vehicle_state_of_charge[charger, :]
 
     def clear_initialisation_variables(self):
         try:
@@ -160,10 +165,12 @@ class ChargingStation:
 
         self.arrivals.append(vehicle_arrivals)
         self.departures.append(vehicle_departures)
+        self.chargers[charger].vehicle_arrivals.append(vehicle_arrivals)
 
     def generate_random_arrival_vehicle_state_of_charge(self, charger, hour):
         random_integer = random.randint(20, 50)
         self.vehicle_state_of_charge[charger, hour] = random_integer / 100
+        self.chargers[charger].vehicle_state_of_charge[hour] = self.vehicle_state_of_charge[charger, hour]
 
     def generate_random_vehicle_departure_time(self, hour):
         upper_limit = min(hour + 10, 25)

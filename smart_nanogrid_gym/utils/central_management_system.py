@@ -19,14 +19,14 @@ class CentralManagementSystem:
 
     def initialise_building_demand(self, building_in_nanogrid):
         if building_in_nanogrid:
-            demand = array([(random.rand() * 10) for i in range(24)])
+            demand = array([(random.rand() * 10) for _ in range(24)])
             return demand
         else:
             return None
 
     def initialise_building_exclusive_demand(self, building_demand):
         if building_demand:
-            demand = array([round(random.rand() - 0.1) for i in range(24)])
+            demand = array([round(random.rand() - 0.1) for _ in range(24)])
             return demand
         else:
             return None
