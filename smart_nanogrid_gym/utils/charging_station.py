@@ -17,7 +17,6 @@ class ChargingStation:
         self.charger_occupancy = np.zeros([self.NUMBER_OF_CHARGERS, 25])
         self.arrivals = []
         self.departures = []
-        self.total_vehicles_charging = np.zeros(24)
         self.departing_vehicles = []
         self.departure_times = []
         self.vehicle_state_of_charge_at_current_timestep = []
@@ -89,7 +88,6 @@ class ChargingStation:
 
         self.vehicle_state_of_charge = initial_values['SOC']
         self.charger_occupancy = initial_values['Charger_occupancy']
-        self.total_vehicles_charging = initial_values['Total_vehicles_charging']
 
         for charger in range(self.NUMBER_OF_CHARGERS):
             if arrival_times.shape == (1, self.NUMBER_OF_CHARGERS):
@@ -113,7 +111,6 @@ class ChargingStation:
             self.departures.clear()
             self.charger_occupancy.fill(0)
             self.vehicle_state_of_charge.fill(0)
-            self.total_vehicles_charging = np.zeros(24)
             return True
         except ValueError:
             return False
@@ -121,15 +118,13 @@ class ChargingStation:
     def generate_new_initial_values(self):
         initial_variables_cleared = self.clear_initialisation_variables()
         initial_vehicle_presence_generated = self.generate_initial_vehicle_presence(initial_variables_cleared)
-        self.calculate_initial_total_vehicles_charging(initial_vehicle_presence_generated)
 
         generated_initial_values = {
             'SOC': self.vehicle_state_of_charge,
             'Arrivals': self.arrivals,
             'Departures': self.departures,
-            'Charger_occupancy': self.charger_occupancy,
-            'Total_vehicles_charging': self.total_vehicles_charging
-        }
+            'Charger_occupancy': self.charger_occupancy
+        } if initial_vehicle_presence_generated else {}
 
         savemat(data_files_directory_path + '\\initial_values.mat', generated_initial_values)
 
@@ -179,13 +174,6 @@ class ChargingStation:
     def generate_random_vehicle_departure_time(self, hour):
         upper_limit = min(hour + 10, 25)
         return random.randint(hour + 4, int(upper_limit))
-
-    def calculate_initial_total_vehicles_charging(self, initial_vehicle_presence_generated):
-        if initial_vehicle_presence_generated:
-            for hour in range(24):
-                hour_occupancy = self.charger_occupancy[:, hour]
-                occupancy_total = hour_occupancy.sum()
-                self.total_vehicles_charging[hour] = occupancy_total
 
     def simulate_vehicle_charging(self, actions, current_timestep):
         # hour = self.timestep
