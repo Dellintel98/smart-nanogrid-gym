@@ -31,8 +31,8 @@ class CentralManagementSystem:
         else:
             return None
 
-    def simulate(self, current_timestep, total_charging_power, energy, energy_price, departing_vehicles, soc,
-                 pv_system_available, vehicle_to_everything, building_in_nanogrid):
+    def simulate(self, current_timestep, total_charging_power, total_discharging_power, energy, energy_price,
+                 departing_vehicles, soc, pv_system_available, vehicle_to_everything, building_in_nanogrid):
         # hour = self.timestep
         # timestep = self.timestep
         # time_interval = 1
@@ -44,7 +44,8 @@ class CentralManagementSystem:
         else:
             available_renewable_energy = 0
 
-        grid_energy = self.calculate_grid_energy(total_charging_power, available_renewable_energy, hour,
+        total_power = total_charging_power + total_discharging_power
+        grid_energy = self.calculate_grid_energy(total_power, available_renewable_energy, hour,
                                                  vehicle_to_everything, building_in_nanogrid)
 
         self.calculate_grid_energy_cost(grid_energy, energy_price[0, hour])

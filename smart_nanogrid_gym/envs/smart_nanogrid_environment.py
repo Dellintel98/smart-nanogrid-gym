@@ -67,9 +67,11 @@ class SmartNanogridEnv(gym.Env):
         )
 
     def step(self, actions):
-        total_charging_power = self.charging_station.simulate_vehicle_charging(actions, self.timestep)
-        results = self.central_management_system.simulate(self.timestep, total_charging_power, self.energy,
-                                                          self.energy_price, self.charging_station.departing_vehicles,
+        [total_charging_power, total_discharging_power] = self.charging_station.simulate_vehicle_charging(actions,
+                                                                                                          self.timestep)
+        results = self.central_management_system.simulate(self.timestep, total_charging_power, total_discharging_power,
+                                                          self.energy, self.energy_price,
+                                                          self.charging_station.departing_vehicles,
                                                           self.charging_station.vehicle_state_of_charge,
                                                           self.PV_SYSTEM_AVAILABLE_IN_MODEL, self.VEHICLE_TO_EVERYTHING,
                                                           self.BUILDING_IN_NANOGRID)
@@ -157,7 +159,7 @@ class SmartNanogridEnv(gym.Env):
         }
         savemat(data_files_directory_path + '\\prediction_results.mat', {'Prediction_results': prediction_results})
 
-    def reset(self, generate_new_initial_values=True):
+    def reset(self, generate_new_initial_values=False):
         self.timestep = 0
         self.simulated_single_day = False
         self.total_cost_per_timestep = []

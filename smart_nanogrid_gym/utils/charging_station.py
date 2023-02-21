@@ -198,10 +198,10 @@ class ChargingStation:
             else:
                 self.charger_power_values[charger] = 0
 
-        total_charging_power = self.charger_power_values.sum()
-        # total_charging_power = sum(charger_power_values)
+        total_discharging_power = self.charger_power_values[self.charger_power_values < 0].sum()
+        total_charging_power = self.charger_power_values[self.charger_power_values > 0].sum()
 
-        return total_charging_power
+        return total_charging_power, total_discharging_power
 
     def charge_or_discharge_vehicle(self, action, hour, charger):
         if action >= 0:
