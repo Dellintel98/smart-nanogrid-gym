@@ -10,6 +10,11 @@ class Charger:
         self.power_value: float = 0.0
         self.vehicle_arrivals: [] = []
         self.vehicle_state_of_charge: array = zeros(25)
+        self.occupancy: array = zeros(25)
+        self.connected_electric_vehicle = ElectricVehicle(battery_capacity=40,
+                                                          current_capacity=0,
+                                                          charging_efficiency=0.95, discharging_efficiency=0.95,
+                                                          max_charging_power=22, max_discharging_power=22)
 
     def connect_vehicle(self, hour):
         self.connected_electric_vehicle = ElectricVehicle(battery_capacity=40,
@@ -28,6 +33,8 @@ class Charger:
             self.power_value = self.charge_vehicle(action, hour)
         else:
             self.power_value = self.discharge_vehicle(action, hour)
+
+        return self.power_value
 
     def charge_vehicle(self, action, hour):
         max_charging_power = self.calculate_max_charging_power(hour)
