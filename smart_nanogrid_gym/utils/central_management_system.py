@@ -16,7 +16,7 @@ class CentralManagementSystem:
 
     def initialise_battery_system(self, battery_system_available_in_model):
         if battery_system_available_in_model:
-            return BatteryEnergyStorageSystem(80, 0.5, 0.95, 0.95, 44, 44, 0.15)
+            return BatteryEnergyStorageSystem(80, 0.5, 44, 44, 0.95, 0.95, 0.15)
         else:
             return None
 
@@ -53,7 +53,7 @@ class CentralManagementSystem:
         self.calculate_total_cost(insufficiently_charged_vehicles_penalty)
 
         if self.battery_system:
-            battery_soc = self.battery_system.current_battery_capacity
+            battery_soc = self.battery_system.current_capacity
         else:
             battery_soc = 0
 
@@ -73,7 +73,7 @@ class CentralManagementSystem:
             available_solar_energy = 0
         return available_solar_energy
 
-    def calculate_grid_energy(self, total_power, available_renewable_energy):
+    def calculate_grid_energy(self, energy_demand, available_solar_energy):
         # if building_in_nanogrid:
         #     current_building_exclusive_demand = self.building_exclusive_demand[hour]
         # else:
@@ -88,74 +88,34 @@ class CentralManagementSystem:
         #     remaining_energy_demand = building_demand + total_power - available_renewable_energy
         # else:
         #     remaining_energy_demand = total_power - available_renewable_energy
-        remaining_energy_demand = total_power - available_renewable_energy
-
-        if not self.battery_system:
-            if remaining_energy_demand == 0:
-                grid_energy = 0
-            else:
-                if self.vehicle_to_everything:
-                    grid_energy = remaining_energy_demand
-                else:
-                    grid_energy = max([remaining_energy_demand, 0])
-            return grid_energy
+        remaining_energy_demand = energy_demand - available_solar_energy
 
         if remaining_energy_demand == 0:
             grid_energy = 0
+            return grid_energy
         elif remaining_energy_demand > 0:
-            capacity_available_to_discharge = self.battery_system.current_battery_capacity - self.battery_system.depth_of_discharge
-            if capacity_available_to_discharge > 0:
-                power_available_for_discharge = capacity_available_to_discharge * self.battery_system.max_battery_capacity
-                max_discharging_energy = min([self.battery_system.max_discharging_power, power_available_for_discharge])
-                temp_remaining_energy_demand = remaining_energy_demand - max_discharging_energy
-
-                if temp_remaining_energy_demand == 0:
-                    grid_energy = 0
-                elif temp_remaining_energy_demand > 0:
-                    grid_energy = temp_remaining_energy_demand
-                else:
-                    max_discharging_energy = remaining_energy_demand
-                    grid_energy = 0
-
-                self.battery_system.current_battery_capacity = self.battery_system.current_battery_capacity - max_discharging_energy / self.battery_system.max_battery_capacity
+            if self.battery_system:
+                energy_from_grid = self.battery_system.discharge(remaining_energy_demand)
             else:
-                grid_energy = remaining_energy_demand
+                energy_from_grid = remaining_energy_demand
+
+            return energy_from_grid
         else:
-            remaining_available_renewable_energy = available_renewable_energy - total_power
-            capacity_available_to_charge = 1 - self.battery_system.current_battery_capacity
+            available_energy = available_solar_energy - energy_demand
 
-            if capacity_available_to_charge > 0:
-                power_available_for_charge = capacity_available_to_charge * self.battery_system.max_battery_capacity
-                max_charging_energy = min([self.battery_system.max_charging_power, power_available_for_charge])
-                temp_remaining_available_renewable_energy = remaining_available_renewable_energy - max_charging_energy
-
-                if temp_remaining_available_renewable_energy == 0:
-                    grid_energy = 0
-                    temp_bess_cap = self.battery_system.current_battery_capacity + max_charging_energy / self.battery_system.max_battery_capacity
-                    # if temp_bess_cap > 1:
-                    #     breakpoint()
-                elif temp_remaining_available_renewable_energy > 0:
-                    temp_bess_cap = self.battery_system.current_battery_capacity + max_charging_energy / self.battery_system.max_battery_capacity
-                    # if temp_bess_cap > 1:
-                    #     breakpoint()
-                    if self.vehicle_to_everything:
-                        grid_energy = -temp_remaining_available_renewable_energy
-                    else:
-                        grid_energy = 0
-                else:
-                    # temp_bess_cap = self.battery_system.current_battery_capacity + max_charging_energy / self.battery_system.max_battery_capacity
-                    # if temp_bess_cap > 1:
-                    #     breakpoint()
-                    max_charging_energy = remaining_available_renewable_energy
-                    grid_energy = 0
-
-                self.battery_system.current_battery_capacity = self.battery_system.current_battery_capacity + max_charging_energy / self.battery_system.max_battery_capacity
+            if self.battery_system:
+                remaining_available_energy = self.battery_system.charge(available_energy)
             else:
-                if self.vehicle_to_everything:
-                    grid_energy = remaining_energy_demand
-                else:
-                    grid_energy = 0
-        return grid_energy
+                remaining_available_energy = available_energy
+
+            if self.vehicle_to_everything:
+                energy_to_grid = -remaining_available_energy
+            else:
+                # Todo: Add penalty for wasted energy
+                # wasted_energy = (+||-???)remaining_available_energy
+                energy_to_grid = 0
+
+            return energy_to_grid
 
     def calculate_grid_energy_cost(self, grid_energy, price):
         self.grid_energy_cost = grid_energy * price
