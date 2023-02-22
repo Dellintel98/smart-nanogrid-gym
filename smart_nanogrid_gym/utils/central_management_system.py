@@ -75,47 +75,38 @@ class CentralManagementSystem:
 
     def calculate_grid_energy(self, energy_demand, available_solar_energy):
         # if building_in_nanogrid:
-        #     current_building_exclusive_demand = self.building_exclusive_demand[hour]
-        # else:
-        #     current_building_exclusive_demand = 0
-
-        # if building_in_nanogrid:
-        #     # if current_building_exclusive_demand:
-        #     #     grid_energy = 0
-        #     #     return grid_energy
-        #
-        #     building_demand = self.building_demand[hour]
         #     remaining_energy_demand = building_demand + total_power - available_renewable_energy
-        # else:
-        #     remaining_energy_demand = total_power - available_renewable_energy
         remaining_energy_demand = energy_demand - available_solar_energy
 
         if remaining_energy_demand == 0:
-            grid_energy = 0
-            return grid_energy
+            return 0
         elif remaining_energy_demand > 0:
-            if self.battery_system:
-                energy_from_grid = self.battery_system.discharge(remaining_energy_demand)
-            else:
-                energy_from_grid = remaining_energy_demand
-
+            energy_from_grid = self.calculate_amount_of_energy_supplied_from_grid(remaining_energy_demand)
             return energy_from_grid
         else:
             available_energy = available_solar_energy - energy_demand
-
-            if self.battery_system:
-                remaining_available_energy = self.battery_system.charge(available_energy)
-            else:
-                remaining_available_energy = available_energy
-
-            if self.vehicle_to_everything:
-                energy_to_grid = -remaining_available_energy
-            else:
-                # Todo: Add penalty for wasted energy
-                # wasted_energy = (+||-???)remaining_available_energy
-                energy_to_grid = 0
-
+            energy_to_grid = self.calculate_amount_of_energy_supplied_to_grid(available_energy)
             return energy_to_grid
+
+    def calculate_amount_of_energy_supplied_from_grid(self, energy_demand):
+        if self.battery_system:
+            remaining_energy_demand = self.battery_system.discharge(energy_demand)
+            return remaining_energy_demand
+        else:
+            return energy_demand
+
+    def calculate_amount_of_energy_supplied_to_grid(self, available_energy):
+        if self.battery_system:
+            remaining_available_energy = self.battery_system.charge(available_energy)
+        else:
+            remaining_available_energy = available_energy
+
+        if self.vehicle_to_everything:
+            return -remaining_available_energy
+        else:
+            # Todo: Add penalty for wasted energy
+            # wasted_energy = (+||-???)remaining_available_energy
+            return 0
 
     def calculate_grid_energy_cost(self, grid_energy, price):
         self.grid_energy_cost = grid_energy * price
