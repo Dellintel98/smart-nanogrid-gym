@@ -34,17 +34,17 @@ class CentralManagementSystem:
         else:
             return None
 
-    def simulate(self, current_timestep, total_charging_power, total_discharging_power, energy, energy_price,
+    def simulate(self, current_timestep, total_charging_power, total_discharging_power, solar_energy, energy_price,
                  departing_vehicles, soc):
         # hour = self.timestep
         # timestep = self.timestep
         # time_interval = 1
         hour = current_timestep
 
-        available_renewable_energy = self.get_available_renewable_energy(energy, hour)
+        available_solar_energy = self.get_available_solar_energy_at_current_timestep(solar_energy, hour)
 
         total_power = total_charging_power + total_discharging_power
-        grid_energy = self.calculate_grid_energy(total_power, available_renewable_energy)
+        grid_energy = self.calculate_grid_energy(total_power, available_solar_energy)
 
         self.calculate_grid_energy_cost(grid_energy, energy_price[0, hour])
         insufficiently_charged_vehicles_penalty = self.calculate_insufficiently_charged_penalty(departing_vehicles, soc,
@@ -60,19 +60,18 @@ class CentralManagementSystem:
         return {
             'Total cost': self.total_cost,
             'Grid energy': grid_energy,
-            'Utilized renewable energy': available_renewable_energy,
+            'Utilized solar energy': available_solar_energy,
             'Insufficiently charged vehicles penalty': insufficiently_charged_vehicles_penalty,
             'Battery state of charge': battery_soc,
             'Grid energy cost': self.grid_energy_cost
         }
 
-    def get_available_renewable_energy(self, energy, hour):
+    def get_available_solar_energy_at_current_timestep(self, solar_energy, current_timestep):
         if self.pv_system_available:
-            renewable = energy['Available solar energy']
-            available_renewable_energy = renewable[hour, 0]
+            available_solar_energy = solar_energy[current_timestep, 0]
         else:
-            available_renewable_energy = 0
-        return available_renewable_energy
+            available_solar_energy = 0
+        return available_solar_energy
 
     def calculate_grid_energy(self, total_power, available_renewable_energy):
         # if building_in_nanogrid:

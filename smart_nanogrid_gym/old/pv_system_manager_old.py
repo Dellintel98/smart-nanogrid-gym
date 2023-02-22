@@ -55,8 +55,8 @@ class PVSystemManager:
     def calculate_pv_scaling_coefficient(self):
         return self.pv_system.total_dimensions * self.pv_system.efficiency / 1000
 
-    def get_available_solar_energy(self):
-        return self.available_solar_energy
-
-    def get_solar_radiation(self):
-        return self.solar_radiation
+    def get_solar_energy(self):
+        return {
+            'Available solar energy': self.available_solar_energy,
+            'Solar radiation': self.solar_radiation
+        }

@@ -101,8 +101,8 @@ def simulate_central_management_system(self, actions):
     # timestep = self.timestep
     # time_interval = 1
     hour = self.timestep
-    consumed = self.energy['Consumed']
-    renewable = self.energy['Available renewable']
+    consumed = self.solar_radiation['Consumed']
+    renewable = self.solar_radiation['Available renewable']
     charger_occupancy = self.initial_simulation_values['Charger occupancy']
     arrivals = self.initial_simulation_values['Arrivals']
 
@@ -124,7 +124,7 @@ def simulate_central_management_system(self, actions):
     available_renewable_energy = calculate_available_renewable_energy(renewable[0, hour], consumed[0, hour])
     grid_energy = calculate_grid_energy(total_charging_power, available_renewable_energy)
 
-    grid_energy_cost = calculate_grid_energy_cost(grid_energy, self.energy["Price"][0, hour])
+    grid_energy_cost = calculate_grid_energy_cost(grid_energy, self.solar_radiation["Price"][0, hour])
     insufficiently_charged_vehicles_penalty = calculate_insufficiently_charged_penalty(departing_vehicles, soc, hour)
 
     total_cost = calculate_total_cost(grid_energy_cost, insufficiently_charged_vehicles_penalty)
