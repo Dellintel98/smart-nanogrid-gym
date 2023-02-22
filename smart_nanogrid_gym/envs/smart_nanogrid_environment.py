@@ -13,7 +13,8 @@ from ..utils.config import data_files_directory_path
 
 class SmartNanogridEnv(gym.Env):
     def __init__(self, price_model=0, pv_system_available_in_model=True, battery_system_available_in_model=True,
-                 vehicle_to_everything=True, building_in_nanogrid=False, building_demand=False):
+                 vehicle_to_everything=True):
+        # Add building_in_nanogrid=False, building_demand=False as init arguments
         self.NUMBER_OF_CHARGERS = 8
         self.NUMBER_OF_DAYS_TO_PREDICT = 1
         self.NUMBER_OF_HOURS_AHEAD = 3
@@ -21,11 +22,15 @@ class SmartNanogridEnv(gym.Env):
         self.CURRENT_PRICE_MODEL = price_model
         self.PV_SYSTEM_AVAILABLE_IN_MODEL = pv_system_available_in_model
         self.VEHICLE_TO_EVERYTHING = vehicle_to_everything
-        self.BUILDING_IN_NANOGRID = building_in_nanogrid
+        # self.BUILDING_IN_NANOGRID = building_in_nanogrid
 
         self.charging_station = ChargingStation(self.NUMBER_OF_CHARGERS)
-        self.central_management_system = CentralManagementSystem(battery_system_available_in_model, building_demand, building_in_nanogrid)
-        if pv_system_available_in_model:
+        # self.central_management_system = CentralManagementSystem(battery_system_available_in_model,
+        #                                                          building_demand, building_in_nanogrid)
+        self.central_management_system = CentralManagementSystem(battery_system_available_in_model,
+                                                                 self.PV_SYSTEM_AVAILABLE_IN_MODEL,
+                                                                 self.VEHICLE_TO_EVERYTHING)
+        if self.PV_SYSTEM_AVAILABLE_IN_MODEL:
             self.pv_system_manager = PVSystemManager(self.NUMBER_OF_DAYS_TO_PREDICT, self.NUMBER_OF_DAYS_AHEAD)
 
         self.timestep = None
@@ -47,7 +52,7 @@ class SmartNanogridEnv(gym.Env):
 
         self.total_amount_of_states = amount_of_states + amount_of_charger_predictions
 
-        if vehicle_to_everything:
+        if self.VEHICLE_TO_EVERYTHING:
             actions_low = -1
         else:
             actions_low = 0
@@ -72,9 +77,7 @@ class SmartNanogridEnv(gym.Env):
         results = self.central_management_system.simulate(self.timestep, total_charging_power, total_discharging_power,
                                                           self.energy, self.energy_price,
                                                           self.charging_station.departing_vehicles,
-                                                          self.charging_station.vehicle_state_of_charge,
-                                                          self.PV_SYSTEM_AVAILABLE_IN_MODEL, self.VEHICLE_TO_EVERYTHING,
-                                                          self.BUILDING_IN_NANOGRID)
+                                                          self.charging_station.vehicle_state_of_charge)
 
         self.total_cost_per_timestep.append(results['Total cost'])
         self.grid_energy_per_timestep.append(results['Grid energy'])

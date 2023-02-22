@@ -4,12 +4,15 @@ from smart_nanogrid_gym.utils.battery_energy_storage_system import BatteryEnergy
 
 
 class CentralManagementSystem:
-    def __init__(self, battery_system_available_in_model, building_demand, building_in_nanogrid):
+    def __init__(self, battery_system_available_in_model, pv_system_available_in_model, vehicle_to_everything):
+        # Add , building_demand, building_in_nanogrid as init arguments
         self.total_cost = 0
         self.grid_energy_cost = 0
         self.battery_system = self.initialise_battery_system(battery_system_available_in_model)
-        self.building_demand = self.initialise_building_demand(building_in_nanogrid)
-        self.building_exclusive_demand = self.initialise_building_exclusive_demand(building_demand)
+        self.pv_system_available = pv_system_available_in_model
+        self.vehicle_to_everything = vehicle_to_everything
+        # self.building_demand = self.initialise_building_demand(building_in_nanogrid)
+        # self.building_exclusive_demand = self.initialise_building_exclusive_demand(building_demand)
 
     def initialise_battery_system(self, battery_system_available_in_model):
         if battery_system_available_in_model:
@@ -32,21 +35,16 @@ class CentralManagementSystem:
             return None
 
     def simulate(self, current_timestep, total_charging_power, total_discharging_power, energy, energy_price,
-                 departing_vehicles, soc, pv_system_available, vehicle_to_everything, building_in_nanogrid):
+                 departing_vehicles, soc):
         # hour = self.timestep
         # timestep = self.timestep
         # time_interval = 1
         hour = current_timestep
 
-        if pv_system_available:
-            renewable = energy['Available solar energy']
-            available_renewable_energy = renewable[hour, 0]
-        else:
-            available_renewable_energy = 0
+        available_renewable_energy = self.get_available_renewable_energy(energy, hour)
 
         total_power = total_charging_power + total_discharging_power
-        grid_energy = self.calculate_grid_energy(total_power, available_renewable_energy, hour,
-                                                 vehicle_to_everything, building_in_nanogrid)
+        grid_energy = self.calculate_grid_energy(total_power, available_renewable_energy)
 
         self.calculate_grid_energy_cost(grid_energy, energy_price[0, hour])
         insufficiently_charged_vehicles_penalty = self.calculate_insufficiently_charged_penalty(departing_vehicles, soc,
@@ -68,8 +66,15 @@ class CentralManagementSystem:
             'Grid energy cost': self.grid_energy_cost
         }
 
-    def calculate_grid_energy(self, total_power, available_renewable_energy, hour, vehicle_to_everything,
-                              building_in_nanogrid):
+    def get_available_renewable_energy(self, energy, hour):
+        if self.pv_system_available:
+            renewable = energy['Available solar energy']
+            available_renewable_energy = renewable[hour, 0]
+        else:
+            available_renewable_energy = 0
+        return available_renewable_energy
+
+    def calculate_grid_energy(self, total_power, available_renewable_energy):
         # if building_in_nanogrid:
         #     current_building_exclusive_demand = self.building_exclusive_demand[hour]
         # else:
@@ -90,7 +95,7 @@ class CentralManagementSystem:
             if remaining_energy_demand == 0:
                 grid_energy = 0
             else:
-                if vehicle_to_everything:
+                if self.vehicle_to_everything:
                     grid_energy = remaining_energy_demand
                 else:
                     grid_energy = max([remaining_energy_demand, 0])
@@ -134,7 +139,7 @@ class CentralManagementSystem:
                     temp_bess_cap = self.battery_system.current_battery_capacity + max_charging_energy / self.battery_system.max_battery_capacity
                     # if temp_bess_cap > 1:
                     #     breakpoint()
-                    if vehicle_to_everything:
+                    if self.vehicle_to_everything:
                         grid_energy = -temp_remaining_available_renewable_energy
                     else:
                         grid_energy = 0
@@ -147,7 +152,7 @@ class CentralManagementSystem:
 
                 self.battery_system.current_battery_capacity = self.battery_system.current_battery_capacity + max_charging_energy / self.battery_system.max_battery_capacity
             else:
-                if vehicle_to_everything:
+                if self.vehicle_to_everything:
                     grid_energy = remaining_energy_demand
                 else:
                     grid_energy = 0
