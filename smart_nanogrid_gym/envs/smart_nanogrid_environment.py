@@ -13,7 +13,7 @@ from ..utils.config import data_files_directory_path
 
 class SmartNanogridEnv(gym.Env):
     def __init__(self, price_model=0, pv_system_available_in_model=True, battery_system_available_in_model=True,
-                 vehicle_to_everything=True):
+                 vehicle_to_everything=False):
         # Add building_in_nanogrid=False, building_demand=False as init arguments
         self.NUMBER_OF_CHARGERS = 8
         self.NUMBER_OF_DAYS_TO_PREDICT = 1
@@ -54,26 +54,35 @@ class SmartNanogridEnv(gym.Env):
 
         self.total_amount_of_states = amount_of_states + amount_of_charger_predictions
 
-        if self.VEHICLE_TO_EVERYTHING:
-            actions_low = -1
-        else:
-            actions_low = 0
-        actions_high = 1
-
         spaces_low = np.array(np.zeros(self.total_amount_of_states), dtype=np.float32)
         spaces_high = np.array(np.ones(self.total_amount_of_states), dtype=np.float32)
-        self.action_space = spaces.Box(
-            low=actions_low,
-            high=actions_high, shape=(self.NUMBER_OF_CHARGERS,),
-            dtype=np.float32
-        )
-        self.observation_space = spaces.Box(
-            low=spaces_low,
-            high=spaces_high,
-            dtype=np.float32
-        )
+
+        if battery_system_available_in_model:
+            if self.VEHICLE_TO_EVERYTHING:
+                actions_low = np.array(np.ones(self.NUMBER_OF_CHARGERS + 1), dtype=np.float32) * (-1)
+            else:
+                actions_low = np.array(np.zeros(self.NUMBER_OF_CHARGERS), dtype=np.float32)
+                actions_low = np.insert(actions_low, self.NUMBER_OF_CHARGERS, -1)
+            actions_high = np.array(np.ones(self.NUMBER_OF_CHARGERS + 1), dtype=np.float32)
+
+            self.action_space = spaces.Box(low=actions_low, high=actions_high, shape=(self.NUMBER_OF_CHARGERS + 1,),
+                                           dtype=np.float32)
+        else:
+            if self.VEHICLE_TO_EVERYTHING:
+                actions_low = -1
+            else:
+                actions_low = 0
+            actions_high = 1
+            self.action_space = spaces.Box(low=actions_low, high=actions_high, shape=(self.NUMBER_OF_CHARGERS,),
+                                           dtype=np.float32)
+
+        self.observation_space = spaces.Box(low=spaces_low, high=spaces_high, dtype=np.float32)
+
+        # Todo: Add look-ahead action_space for looking at agents planned actions to see will departing vehicles be
+        #       charged enough based on current action, and penalize wrong future actions
 
     def step(self, actions):
+        # Todo: Add battery actions handling
         [total_charging_power, total_discharging_power] = self.charging_station.simulate_vehicle_charging(actions,
                                                                                                           self.timestep,
                                                                                                           self.TIME_INTERVAL)
