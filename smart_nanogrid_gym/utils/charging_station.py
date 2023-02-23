@@ -1,7 +1,6 @@
 import time
 
-import numpy as np
-from numpy import random, arange
+from numpy import random, zeros
 from scipy.io import loadmat, savemat
 
 from smart_nanogrid_gym.utils.charger import Charger
@@ -13,8 +12,8 @@ class ChargingStation:
     def __init__(self, number_of_chargers):
         self.NUMBER_OF_CHARGERS = number_of_chargers
         self.chargers = [Charger() for _ in range(self.NUMBER_OF_CHARGERS)]
-        self.vehicle_state_of_charge = np.zeros([self.NUMBER_OF_CHARGERS, 25])
-        self.charger_occupancy = np.zeros([self.NUMBER_OF_CHARGERS, 25])
+        self.vehicle_state_of_charge = zeros([self.NUMBER_OF_CHARGERS, 25])
+        self.charger_occupancy = zeros([self.NUMBER_OF_CHARGERS, 25])
         self.arrivals = []
         self.departures = []
         self.departing_vehicles = []
@@ -28,7 +27,7 @@ class ChargingStation:
     def simulate(self, current_timestep):
         self.find_departing_vehicles(current_timestep)
         self.calculate_departure_times(current_timestep)
-        self.calculate_state_of_charge_for_each_vehicle(current_timestep)
+        self.extract_current_state_of_charge_per_vehicle(current_timestep)
 
         return self.departure_times, self.vehicle_state_of_charge_at_current_timestep
 
@@ -73,7 +72,7 @@ class ChargingStation:
                 return charger_departures[vehicle] - hour
         return []
 
-    def calculate_state_of_charge_for_each_vehicle(self, hour):
+    def extract_current_state_of_charge_per_vehicle(self, hour):
         self.vehicle_state_of_charge_at_current_timestep.clear()
         for charger in range(self.NUMBER_OF_CHARGERS):
             self.vehicle_state_of_charge_at_current_timestep.append(self.vehicle_state_of_charge[charger, hour])
@@ -175,18 +174,17 @@ class ChargingStation:
         upper_limit = min(hour + 10, 25)
         return random.randint(hour + 4, int(upper_limit))
 
-    def simulate_vehicle_charging(self, actions, current_timestep):
+    def simulate_vehicle_charging(self, actions, current_timestep, time_interval):
         # hour = self.timestep
         # timestep = self.timestep
         # time_interval = 1
-        hour = current_timestep
 
-        charger_power_values = np.zeros(self.NUMBER_OF_CHARGERS)
+        charger_power_values = zeros(self.NUMBER_OF_CHARGERS)
 
         for index, charger in enumerate(self.chargers):
             # to-do later (maybe): -1=Charger reserved -> lasts for max 15 minutes, 1=Occupied, 0=Empty
-            if charger.occupancy[hour] == 1:
-                charger_power_values[index] = charger.charge_or_discharge_vehicle(actions[index], hour)
+            if charger.occupancy[current_timestep] == 1:
+                charger_power_values[index] = charger.charge_or_discharge_vehicle(actions[index], current_timestep, time_interval)
             else:
                 charger_power_values[index] = 0
 

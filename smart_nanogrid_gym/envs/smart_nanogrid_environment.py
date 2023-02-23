@@ -17,8 +17,9 @@ class SmartNanogridEnv(gym.Env):
         # Add building_in_nanogrid=False, building_demand=False as init arguments
         self.NUMBER_OF_CHARGERS = 8
         self.NUMBER_OF_DAYS_TO_PREDICT = 1
+        # TODO: Add method for setting time_interval by keyword argument from ['1h', '2h'...-> '?h'; '15min'...->'?min']
+        self.TIME_INTERVAL = 1
         self.NUMBER_OF_HOURS_AHEAD = 3
-        self.NUMBER_OF_DAYS_AHEAD = 1
         self.CURRENT_PRICE_MODEL = price_model
         self.PV_SYSTEM_AVAILABLE_IN_MODEL = pv_system_available_in_model
         self.VEHICLE_TO_EVERYTHING = vehicle_to_everything
@@ -31,7 +32,7 @@ class SmartNanogridEnv(gym.Env):
                                                                  self.PV_SYSTEM_AVAILABLE_IN_MODEL,
                                                                  self.VEHICLE_TO_EVERYTHING)
         if self.PV_SYSTEM_AVAILABLE_IN_MODEL:
-            self.pv_system_manager = PVSystemManager(self.NUMBER_OF_DAYS_TO_PREDICT, self.NUMBER_OF_DAYS_AHEAD)
+            self.pv_system_manager = PVSystemManager(self.NUMBER_OF_DAYS_TO_PREDICT, self.TIME_INTERVAL)
 
         self.timestep = None
         self.info = None
@@ -74,7 +75,8 @@ class SmartNanogridEnv(gym.Env):
 
     def step(self, actions):
         [total_charging_power, total_discharging_power] = self.charging_station.simulate_vehicle_charging(actions,
-                                                                                                          self.timestep)
+                                                                                                          self.timestep,
+                                                                                                          self.TIME_INTERVAL)
         results = self.central_management_system.simulate(self.timestep, total_charging_power, total_discharging_power,
                                                           self.available_solar_energy, self.energy_price,
                                                           self.charging_station.departing_vehicles,
@@ -147,7 +149,7 @@ class SmartNanogridEnv(gym.Env):
 
     def __save_prediction_results(self):
         if self.PV_SYSTEM_AVAILABLE_IN_MODEL:
-            available_solar_energy = self.available_solar_energy.T
+            available_solar_energy = self.available_solar_energy
         else:
             available_solar_energy = []
 
@@ -178,7 +180,8 @@ class SmartNanogridEnv(gym.Env):
             self.available_solar_energy = self.pv_system_manager.get_available_solar_energy()
 
         self.energy_price = self.central_management_system.get_energy_price(self.CURRENT_PRICE_MODEL,
-                                                                            self.NUMBER_OF_DAYS_TO_PREDICT)
+                                                                            self.NUMBER_OF_DAYS_TO_PREDICT,
+                                                                            self.TIME_INTERVAL)
         self.__load_initial_simulation_values(generate_new_initial_values)
 
         return self.__get_observations()
