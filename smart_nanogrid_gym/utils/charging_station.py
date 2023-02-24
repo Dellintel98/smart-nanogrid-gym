@@ -9,11 +9,12 @@ from smart_nanogrid_gym.utils.electric_vehicle import ElectricVehicle
 
 
 class ChargingStation:
-    def __init__(self, number_of_chargers):
+    def __init__(self, number_of_chargers, time_interval):
         self.NUMBER_OF_CHARGERS = number_of_chargers
+        array_columns = int(25 / time_interval)
         self.chargers = [Charger() for _ in range(self.NUMBER_OF_CHARGERS)]
-        self.vehicle_state_of_charge = zeros([self.NUMBER_OF_CHARGERS, 25])
-        self.charger_occupancy = zeros([self.NUMBER_OF_CHARGERS, 25])
+        self.vehicle_state_of_charge = zeros([self.NUMBER_OF_CHARGERS, array_columns])
+        self.charger_occupancy = zeros([self.NUMBER_OF_CHARGERS, array_columns])
         self.arrivals = []
         self.departures = []
         self.departing_vehicles = []
@@ -24,21 +25,21 @@ class ChargingStation:
                                                      discharging_efficiency=0.95, max_charging_power=22,
                                                      max_discharging_power=22)
 
-    def simulate(self, current_timestep):
-        self.find_departing_vehicles(current_timestep)
+    def simulate(self, current_timestep, time_interval):
+        self.find_departing_vehicles(current_timestep, time_interval)
         self.calculate_departure_times(current_timestep)
         self.extract_current_state_of_charge_per_vehicle(current_timestep)
 
         return self.departure_times, self.vehicle_state_of_charge_at_current_timestep
 
-    def find_departing_vehicles(self, hour):
-        if hour >= 24:
+    def find_departing_vehicles(self, timestep, time_interval):
+        if timestep >= (24 / time_interval):
             return []
 
         self.departing_vehicles.clear()
         for charger in range(self.NUMBER_OF_CHARGERS):
-            charger_occupied = self.check_charger_occupancy(self.charger_occupancy[charger, hour])
-            vehicle_departing = self.check_is_vehicle_departing(self.departures[charger], hour)
+            charger_occupied = self.check_charger_occupancy(self.charger_occupancy[charger, timestep])
+            vehicle_departing = self.check_is_vehicle_departing(self.departures[charger], timestep)
 
             if charger_occupied and vehicle_departing:
                 self.departing_vehicles.append(charger)
@@ -49,33 +50,33 @@ class ChargingStation:
         else:
             return False
 
-    def check_is_vehicle_departing(self, vehicle_departure, hour):
-        if hour + 1 in vehicle_departure:
+    def check_is_vehicle_departing(self, vehicle_departure, timestep):
+        if timestep + 1 in vehicle_departure:
             return True
         else:
             return False
 
-    def calculate_departure_times(self, hour):
+    def calculate_departure_times(self, timestep):
         self.departure_times.clear()
         for charger in range(self.NUMBER_OF_CHARGERS):
-            charger_occupied = self.check_charger_occupancy(self.charger_occupancy[charger, hour])
+            charger_occupied = self.check_charger_occupancy(self.charger_occupancy[charger, timestep])
 
             if charger_occupied:
-                departure_time = self.calculate_next_departure_time(self.departures[charger], hour)
+                departure_time = self.calculate_next_departure_time(self.departures[charger], timestep)
                 self.departure_times.append(departure_time)
             else:
                 self.departure_times.append(0)
 
-    def calculate_next_departure_time(self, charger_departures, hour):
+    def calculate_next_departure_time(self, charger_departures, timestep):
         for vehicle in range(len(charger_departures)):
-            if hour <= charger_departures[vehicle]:
-                return charger_departures[vehicle] - hour
+            if timestep <= charger_departures[vehicle]:
+                return charger_departures[vehicle] - timestep
         return []
 
-    def extract_current_state_of_charge_per_vehicle(self, hour):
+    def extract_current_state_of_charge_per_vehicle(self, timestep):
         self.vehicle_state_of_charge_at_current_timestep.clear()
         for charger in range(self.NUMBER_OF_CHARGERS):
-            self.vehicle_state_of_charge_at_current_timestep.append(self.vehicle_state_of_charge[charger, hour])
+            self.vehicle_state_of_charge_at_current_timestep.append(self.vehicle_state_of_charge[charger, timestep])
 
     def load_initial_values(self):
         self.clear_initialisation_variables()
@@ -114,9 +115,9 @@ class ChargingStation:
         except ValueError:
             return False
 
-    def generate_new_initial_values(self):
+    def generate_new_initial_values(self, time_interval):
         initial_variables_cleared = self.clear_initialisation_variables()
-        initial_vehicle_presence_generated = self.generate_initial_vehicle_presence(initial_variables_cleared)
+        initial_vehicle_presence_generated = self.generate_initial_vehicle_presence(initial_variables_cleared, time_interval)
 
         generated_initial_values = {
             'SOC': self.vehicle_state_of_charge,
@@ -127,64 +128,68 @@ class ChargingStation:
 
         savemat(data_files_directory_path + '\\initial_values.mat', generated_initial_values)
 
-    def generate_initial_vehicle_presence(self, initial_variables_cleared):
+    def generate_initial_vehicle_presence(self, initial_variables_cleared, time_interval):
         if initial_variables_cleared:
             for charger in range(self.NUMBER_OF_CHARGERS):
-                self.generate_initial_vehicle_presence_per_charger(charger)
+                self.generate_initial_vehicle_presence_per_charger(charger, time_interval)
             return True
         return False
 
-    def generate_initial_vehicle_presence_per_charger(self, charger):
+    def generate_initial_vehicle_presence_per_charger(self, charger, time_interval):
         vehicle_arrivals = []
         vehicle_departures = []
 
         vehicle_present = False
         current_departure_time = 0
 
-        for hour in range(24):
+        total_timesteps = int(24 / time_interval)
+        for timestep in range(total_timesteps):
             if not vehicle_present:
                 arrival = round(random.rand() - 0.1)
-                if arrival == 1 and hour <= 20:
+                if arrival == 1 and timestep < total_timesteps:
                     vehicle_present = True
 
-                    self.generate_random_arrival_vehicle_state_of_charge(charger, hour)
-                    vehicle_arrivals.append(hour)
+                    self.generate_random_arrival_vehicle_state_of_charge(charger, timestep)
+                    vehicle_arrivals.append(timestep)
 
-                    current_departure_time = self.generate_random_vehicle_departure_time(hour)
+                    current_departure_time = self.generate_random_vehicle_departure_time(timestep, time_interval, total_timesteps)
                     vehicle_departures.append(current_departure_time)
 
-            if vehicle_present and hour < current_departure_time:
-                self.charger_occupancy[charger, hour] = 1
-                self.chargers[charger].occupancy[hour] = 1
+            if vehicle_present and timestep < current_departure_time:
+                self.charger_occupancy[charger, timestep] = 1
+                self.chargers[charger].occupancy[timestep] = 1
             else:
                 vehicle_present = False
-                self.charger_occupancy[charger, hour] = 0
-                self.chargers[charger].occupancy[hour] = 0
+                self.charger_occupancy[charger, timestep] = 0
+                self.chargers[charger].occupancy[timestep] = 0
 
         self.arrivals.append(vehicle_arrivals)
         self.departures.append(vehicle_departures)
         self.chargers[charger].vehicle_arrivals.extend(vehicle_arrivals)
 
-    def generate_random_arrival_vehicle_state_of_charge(self, charger, hour):
-        random_integer = random.randint(20, 50)
-        self.vehicle_state_of_charge[charger, hour] = random_integer / 100
-        self.chargers[charger].vehicle_state_of_charge[hour] = self.vehicle_state_of_charge[charger, hour]
+    def generate_random_arrival_vehicle_state_of_charge(self, charger, timestep):
+        random_integer = random.randint(10, 90)
+        self.vehicle_state_of_charge[charger, timestep] = random_integer / 100
+        self.chargers[charger].vehicle_state_of_charge[timestep] = self.vehicle_state_of_charge[charger, timestep]
 
-    def generate_random_vehicle_departure_time(self, hour):
-        upper_limit = min(hour + 10, 25)
-        return random.randint(hour + 4, int(upper_limit))
+    def generate_random_vehicle_departure_time(self, timestep, time_interval, total_timesteps):
+        max_charging_time = timestep + int(10 / time_interval)
+        max_departing_time = total_timesteps + int(1 / time_interval)
+        upper_limit = min(max_charging_time, max_departing_time)
+        low = timestep + int(4 / time_interval)
+        high = int(upper_limit)
+        if low >= high:
+            return int(low)
+        return random.randint(low, high)
 
     def simulate_vehicle_charging(self, actions, current_timestep, time_interval):
-        # hour = self.timestep
-        # timestep = self.timestep
-        # time_interval = 1
-
         charger_power_values = zeros(self.NUMBER_OF_CHARGERS)
 
         for index, charger in enumerate(self.chargers):
+            action = actions[index]
             # to-do later (maybe): -1=Charger reserved -> lasts for max 15 minutes, 1=Occupied, 0=Empty
-            if charger.occupancy[current_timestep] == 1:
-                charger_power_values[index] = charger.charge_or_discharge_vehicle(actions[index], current_timestep, time_interval)
+            if charger.occupancy[current_timestep] == 1 and action != 0:
+                charger_power_values[index] = charger.charge_or_discharge_vehicle(action, current_timestep, time_interval)
             else:
                 charger_power_values[index] = 0
 

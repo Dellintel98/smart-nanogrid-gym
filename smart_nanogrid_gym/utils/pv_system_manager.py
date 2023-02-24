@@ -75,3 +75,6 @@ class PVSystemManager:
 
     def get_solar_radiation(self):
         return self.solar_irradiance_2
+
+    def get_available_solar_produced_power(self, time_interval):
+        return self.available_solar_energy / time_interval

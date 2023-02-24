@@ -34,22 +34,21 @@ class CentralManagementSystem:
         else:
             return None
 
-    def simulate(self, timestep, total_charging_power, total_discharging_power, solar_energy, energy_price,
-                 departing_vehicles, soc):
-        # hour = self.timestep
-        # timestep = self.timestep
-        # time_interval = 1
-
-        available_solar_energy = self.get_available_solar_energy_at_current_timestep(solar_energy, timestep)
+    def simulate(self, timestep, total_charging_power, total_discharging_power, solar_power, energy_price,
+                 departing_vehicles, soc, battery_action, time_interval):
+        available_solar_power = self.get_available_solar_power_at_current_timestep(solar_power, timestep)
 
         total_power = total_charging_power + total_discharging_power
-        grid_energy = self.calculate_grid_energy(total_power, available_solar_energy)
+        grid_power, battery_penalty = self.calculate_grid_power(total_power, available_solar_power, battery_action, time_interval)
+        grid_energy = grid_power * time_interval
 
         self.calculate_grid_energy_cost(grid_energy, energy_price[0, timestep])
         insufficiently_charged_vehicles_penalty = self.calculate_insufficiently_charged_penalty(departing_vehicles, soc,
                                                                                                 timestep)
-
-        self.calculate_total_cost(insufficiently_charged_vehicles_penalty)
+        # Todo: Feat: Add Penaliser class to include all penalty calculations
+        #       or Add Accountant class to include all economy calculations, including cost, rewards and penalties
+        total_penalty = insufficiently_charged_vehicles_penalty + battery_penalty
+        self.calculate_total_cost(total_penalty)
 
         if self.battery_system:
             battery_soc = self.battery_system.current_capacity
@@ -58,53 +57,55 @@ class CentralManagementSystem:
 
         return {
             'Total cost': self.total_cost,
+            'Grid power': grid_power,
             'Grid energy': grid_energy,
-            'Utilized solar energy': available_solar_energy,
+            'Utilized solar energy': available_solar_power,
             'Insufficiently charged vehicles penalty': insufficiently_charged_vehicles_penalty,
             'Battery state of charge': battery_soc,
             'Grid energy cost': self.grid_energy_cost
         }
 
-    def get_available_solar_energy_at_current_timestep(self, solar_energy, current_timestep):
+    def get_available_solar_power_at_current_timestep(self, solar_power, current_timestep):
         if self.pv_system_available:
-            available_solar_energy = solar_energy[0, current_timestep]
+            available_solar_power = solar_power[0, current_timestep]
         else:
-            available_solar_energy = 0
-        return available_solar_energy
+            available_solar_power = 0
+        return available_solar_power
 
-    def calculate_grid_energy(self, energy_demand, available_solar_energy):
+    def calculate_grid_power(self, power_demand, available_solar_power, battery_action, time_interval):
         # if building_in_nanogrid:
         #     remaining_energy_demand = building_demand + total_power - available_renewable_energy
-        remaining_energy_demand = energy_demand - available_solar_energy
+        remaining_power_demand = power_demand - available_solar_power
 
-        if remaining_energy_demand == 0:
-            return 0
-        elif remaining_energy_demand > 0:
-            energy_from_grid = self.calculate_amount_of_energy_supplied_from_grid(remaining_energy_demand)
-            return energy_from_grid
+        if remaining_power_demand == 0:
+            return 0, 0
+        elif remaining_power_demand > 0:
+            power_from_grid, battery_penalty = self.calculate_amount_of_power_supplied_from_grid(remaining_power_demand, battery_action, time_interval)
+            return power_from_grid, battery_penalty
         else:
-            available_energy = available_solar_energy - energy_demand
-            energy_to_grid = self.calculate_amount_of_energy_supplied_to_grid(available_energy)
-            return energy_to_grid
+            available_power = available_solar_power - power_demand
+            power_to_grid, battery_penalty = self.calculate_amount_of_power_supplied_to_grid(available_power, battery_action, time_interval)
+            return power_to_grid, battery_penalty
 
-    def calculate_amount_of_energy_supplied_from_grid(self, energy_demand):
-        if self.battery_system:
-            remaining_energy_demand = self.battery_system.discharge(energy_demand)
-            return remaining_energy_demand
+    def calculate_amount_of_power_supplied_from_grid(self, power_demand, battery_action, time_interval):
+        if self.battery_system and battery_action != 0:
+            remaining_power_demand, battery_penalty = self.battery_system.discharge(power_demand, battery_action, time_interval)
+            return remaining_power_demand, battery_penalty
         else:
-            return energy_demand
+            return power_demand, 0
 
-    def calculate_amount_of_energy_supplied_to_grid(self, available_energy):
-        if self.battery_system:
-            remaining_available_energy = self.battery_system.charge(available_energy)
+    def calculate_amount_of_power_supplied_to_grid(self, available_power, battery_action, time_interval):
+        if self.battery_system and battery_action != 0:
+            remaining_available_power, battery_penalty = self.battery_system.charge(available_power, battery_action, time_interval)
         else:
-            remaining_available_energy = available_energy
+            remaining_available_power = available_power
+            battery_penalty = 0
 
         if self.vehicle_to_everything:
-            return -remaining_available_energy
+            return -remaining_available_power, battery_penalty
         else:
-            # Todo: Add penalty for wasted energy -> wasted_energy = (+||-???)remaining_available_energy
-            return 0
+            # Todo: Feat: Add penalty for wasted energy/power -> wasted_power = (+||-???)remaining_available_power
+            return 0, battery_penalty
 
     def calculate_grid_energy_cost(self, grid_energy, price):
         self.grid_energy_cost = grid_energy * price

@@ -14,8 +14,42 @@ from stable_baselines3.common.noise import NormalActionNoise, OrnsteinUhlenbeckA
 from stable_baselines3 import DDPG, PPO
 from stable_baselines3.common.evaluation import evaluate_policy
 import time
-models_dir = f"models/PPO-{int(time.time())}"
-logdir = f"logs/PPO-{int(time.time())}"
+
+env_variants = [
+    {
+        'variant_name': 'basic-',
+        'config': {
+            'vehicle_to_everything': False,
+            'pv_system_available_in_model': False,
+            'battery_system_available_in_model': False
+        }},
+    {
+        'variant_name': 'b-pv-',
+        'config': {
+            'vehicle_to_everything': False,
+            'pv_system_available_in_model': True,
+            'battery_system_available_in_model': True
+        }},
+    {
+        'variant_name': 'v2x-',
+        'config': {
+            'vehicle_to_everything': True,
+            'pv_system_available_in_model': False,
+            'battery_system_available_in_model': False
+        }},
+    {
+        'variant_name': 'v2x-b-pv-',
+        'config': {
+            'vehicle_to_everything': True,
+            'pv_system_available_in_model': True,
+            'battery_system_available_in_model': True
+        }}
+]
+current_env = env_variants[0]
+current_env_name = current_env['variant_name']
+
+models_dir = f"models/PPO-{current_env_name}{int(time.time())}"
+logdir = f"logs/PPO-{current_env_name}{int(time.time())}"
 
 if not os.path.exists(models_dir):
     os.makedirs(models_dir)
@@ -23,8 +57,8 @@ if not os.path.exists(models_dir):
 if not os.path.exists(logdir):
     os.makedirs(logdir)
 
-
-env = gym.make('SmartNanogridEnv-v0')
+current_env_configuration = current_env['config']
+env = gym.make('SmartNanogridEnv-v0', **current_env_configuration)
 
 # the noise objects for DDPG
 n_actions = env.action_space.shape[-1]
@@ -34,8 +68,8 @@ action_noise = OrnsteinUhlenbeckActionNoise(mean=np.zeros(n_actions), sigma=floa
 # model = DDPG(MlpPolicy, env, verbose=1, action_noise=action_noise, tensorboard_log=logdir)
 model = PPO("MlpPolicy", env, verbose=1, tensorboard_log=logdir)
 
-# TIMESTEPS = 20000
-TIMESTEPS = 200
+TIMESTEPS = 20000
+# TIMESTEPS = 200
 for i in range(1, 50):
     model.learn(total_timesteps=TIMESTEPS, reset_num_timesteps=False, tb_log_name="PPO")
     model.save(f"{models_dir}/{TIMESTEPS * i}")
