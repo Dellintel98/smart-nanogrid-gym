@@ -2,7 +2,6 @@ import smart_nanogrid_gym
 import argparse
 
 import gym
-import numpy as np
 import os
 
 from stable_baselines3.common.noise import NormalActionNoise, OrnsteinUhlenbeckActionNoise
@@ -55,15 +54,11 @@ if not os.path.exists(logdir):
 current_env_configuration = current_env['config']
 env = gym.make('SmartNanogridEnv-v0', **current_env_configuration)
 
-# the noise objects for DDPG
-n_actions = env.action_space.shape[-1]
-param_noise = None
-action_noise = OrnsteinUhlenbeckActionNoise(mean=np.zeros(n_actions), sigma=float(0.5) * np.ones(n_actions))
-
 model = PPO("MlpPolicy", env, verbose=1, tensorboard_log=logdir)
 
 TIMESTEPS = 20000
 # TIMESTEPS = 200
+
 for i in range(1, 50):
     model.learn(total_timesteps=TIMESTEPS, reset_num_timesteps=False, tb_log_name="PPO")
     model.save(f"{models_dir}/{TIMESTEPS * i}")
