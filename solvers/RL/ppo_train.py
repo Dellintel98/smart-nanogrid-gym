@@ -39,7 +39,7 @@ env_variants = [
             'battery_system_available_in_model': True
         }}
 ]
-current_env = env_variants[1]
+current_env = env_variants[3]
 current_env_name = current_env['variant_name']
 
 models_dir = f"models/PPO-{current_env_name}{int(time.time())}"
@@ -58,12 +58,20 @@ model = PPO("MlpPolicy", env, verbose=1, tensorboard_log=logdir)
 
 TIMESTEPS = 20000
 # TIMESTEPS = 200
-
+start = time.time()
 for i in range(1, 50):
     model.learn(total_timesteps=TIMESTEPS, reset_num_timesteps=False, tb_log_name="PPO")
     model.save(f"{models_dir}/{TIMESTEPS * i}")
 
 env.close
+
+end = time.time()
+seconds = end - start
+minutes = seconds / 60
+hours = minutes // 60
+minutes = (minutes/60 - hours) * 60
+
+print(f'Training started: {start}\nTraining ended: {end}\nTraining lasted: {hours} h and {minutes} min')
 # del model # remove to demonstrate saving and loading
 
 # model = DDPG.load("ddpg_gym", env=env)

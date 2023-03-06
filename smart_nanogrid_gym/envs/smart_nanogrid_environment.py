@@ -129,19 +129,22 @@ class SmartNanogridEnv(gym.Env):
         [departure_times, vehicles_state_of_charge] = self.charging_station.simulate(self.timestep, self.TIME_INTERVAL)
         if self.BATTERY_SYSTEM_AVAILABLE_IN_MODEL:
             battery_soc = self.central_management_system.battery_system.get_state_of_charge()
+        else:
+            battery_soc = 0.0
 
         min_timesteps_ahead = self.timestep + 1
         max_timesteps_ahead = min_timesteps_ahead + self.NUMBER_OF_HOURS_AHEAD
 
         max_price = self.energy_price.max()
         if self.PV_SYSTEM_AVAILABLE_IN_MODEL:
+            max_radiation = self.solar_radiation.max()
             normalized_disturbances_observation_at_current_timestep = np.array([
-                self.solar_radiation[0, self.timestep] / 1000,
+                self.solar_radiation[0, self.timestep] / max_radiation,
                 self.energy_price[0, self.timestep] / max_price
             ])
 
             normalized_predictions = np.concatenate((
-                np.array([self.solar_radiation[0, min_timesteps_ahead:max_timesteps_ahead] / 1000]),
+                np.array([self.solar_radiation[0, min_timesteps_ahead:max_timesteps_ahead] / max_radiation]),
                 np.array([self.energy_price[0, min_timesteps_ahead:max_timesteps_ahead] / max_price])),
                 axis=None
             )
@@ -150,7 +153,7 @@ class SmartNanogridEnv(gym.Env):
                 self.energy_price[0, self.timestep] / max_price
             ])
 
-            normalized_predictions = np.array([self.energy_price[0, min_timesteps_ahead:max_timesteps_ahead] / 0.1])
+            normalized_predictions = np.array([self.energy_price[0, min_timesteps_ahead:max_timesteps_ahead] / max_price])
 
         if self.BATTERY_SYSTEM_AVAILABLE_IN_MODEL:
             normalized_states = np.concatenate((
@@ -170,7 +173,7 @@ class SmartNanogridEnv(gym.Env):
             normalized_disturbances_observation_at_current_timestep,
             normalized_predictions,
             normalized_states),
-            axis=None
+            axis=None, dtype=np.float32
         )
 
         return observations
