@@ -1,6 +1,7 @@
+import json
 import time
 
-from numpy import random, zeros
+from numpy import random, zeros, asarray, ndarray, array
 from scipy.io import loadmat, savemat
 
 from smart_nanogrid_gym.utils.charger import Charger
@@ -63,6 +64,8 @@ class ChargingStation:
 
             if charger_occupied:
                 departure_time = self.calculate_next_departure_time(self.departures[charger], timestep)
+                if isinstance(departure_time, ndarray):
+                    breakpoint()
                 self.departure_times.append(departure_time)
             else:
                 self.departure_times.append(0)
@@ -70,7 +73,10 @@ class ChargingStation:
     def calculate_next_departure_time(self, charger_departures, timestep):
         for vehicle in range(len(charger_departures)):
             if timestep <= charger_departures[vehicle]:
-                return charger_departures[vehicle] - timestep
+                a = charger_departures[vehicle] - timestep
+                if isinstance(a, ndarray):
+                    breakpoint()
+                return a
         return []
 
     def extract_current_state_of_charge_per_vehicle(self, timestep):
@@ -82,6 +88,9 @@ class ChargingStation:
         self.clear_initialisation_variables()
 
         initial_values = loadmat(data_files_directory_path + '\\initial_values.mat')
+        with open(data_files_directory_path + "\\initial_values.json", "r") as fp:
+            initials = json.load(fp)
+            a = 2
 
         arrival_times = initial_values['Arrivals']
         departure_times = initial_values['Departures']
@@ -98,6 +107,10 @@ class ChargingStation:
                 departures = departure_times[charger]
             else:
                 raise Exception("Initial values loaded from initial_values.mat have wrong shape.")
+
+            if isinstance(departures[0], ndarray):
+                departures = array(departures.tolist()).flatten()
+                arrivals = array(arrivals.tolist()).flatten()
 
             self.arrivals.append(arrivals.tolist())
             self.departures.append(departures.tolist())
@@ -119,12 +132,25 @@ class ChargingStation:
         initial_variables_cleared = self.clear_initialisation_variables()
         initial_vehicle_presence_generated = self.generate_initial_vehicle_presence(initial_variables_cleared, time_interval)
 
+        arrivals_array = asarray(self.arrivals, dtype=object)
+        departures_array = asarray(self.departures, dtype=object)
+
         generated_initial_values = {
             'SOC': self.vehicle_state_of_charge,
-            'Arrivals': self.arrivals,
-            'Departures': self.departures,
+            'Arrivals': arrivals_array,
+            'Departures': departures_array,
             'Charger_occupancy': self.charger_occupancy
         } if initial_vehicle_presence_generated else {}
+
+        generated_initial_values_json = {
+            'SOC': self.vehicle_state_of_charge.tolist(),
+            'Arrivals': self.arrivals,
+            'Departures': self.departures,
+            'Charger_occupancy': self.charger_occupancy.tolist()
+        } if initial_vehicle_presence_generated else {}
+
+        with open(data_files_directory_path + "\\initial_values.json", "w") as fp:
+            json.dump(generated_initial_values_json, fp, indent=4)
 
         savemat(data_files_directory_path + '\\initial_values.mat', generated_initial_values)
 

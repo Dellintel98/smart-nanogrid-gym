@@ -123,10 +123,13 @@ class SmartNanogridEnv(gym.Env):
         reward = -results['Total cost']
         self.info = {}
 
-        return observations, reward, self.simulated_single_day, self.info
+        out_of_scope = False
+
+        return observations, reward, self.simulated_single_day, out_of_scope, self.info
 
     def __get_observations(self):
         [departure_times, vehicles_state_of_charge] = self.charging_station.simulate(self.timestep, self.TIME_INTERVAL)
+
         if self.BATTERY_SYSTEM_AVAILABLE_IN_MODEL:
             battery_soc = self.central_management_system.battery_system.get_state_of_charge()
         else:
@@ -155,17 +158,19 @@ class SmartNanogridEnv(gym.Env):
 
             normalized_predictions = np.array([self.energy_price[0, min_timesteps_ahead:max_timesteps_ahead] / max_price])
 
+        departures_array = np.array(departure_times)
+        normalized_departures = departures_array / 24
         if self.BATTERY_SYSTEM_AVAILABLE_IN_MODEL:
             normalized_states = np.concatenate((
                 np.array(vehicles_state_of_charge),
-                np.array(departure_times) / 24,
+                normalized_departures,
                 np.array(battery_soc)),
                 axis=None
             )
         else:
             normalized_states = np.concatenate((
                 np.array(vehicles_state_of_charge),
-                np.array(departure_times) / 24),
+                normalized_departures),
                 axis=None
             )
 
@@ -203,7 +208,7 @@ class SmartNanogridEnv(gym.Env):
         }
         savemat(data_files_directory_path + '\\prediction_results.mat', {'Prediction_results': prediction_results})
 
-    def reset(self, generate_new_initial_values=True):
+    def reset(self, generate_new_initial_values=True, **kwargs):
         self.timestep = 0
         self.simulated_single_day = False
         self.total_cost_per_timestep = []

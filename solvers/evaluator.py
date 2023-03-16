@@ -1,90 +1,125 @@
 import gym
 import smart_nanogrid_gym
-
-import gym
 import numpy as np
 import os
 import argparse
-from solvers.RBC.rbc import RBC
 
-from stable_baselines3 import PPO
+from stable_baselines3 import DDPG, PPO
 import time
 import matplotlib.pyplot as plt
+
 from smart_nanogrid_gym.utils.config import solvers_files_directory_path
 
 
-parser = argparse.ArgumentParser()
-parser.add_argument("--env", default="SmartNanogridEnv-v0")
-parser.add_argument("--reset_flag", default=1, type=int)
-args = parser.parse_args()
-env = gym.make(args.env)
+def evaluate_model_for_single_episode(current_model, env, kwargs):
+    rewards_list = []
 
-# Define which model to load
-# PPO Model 1
-model_name1 = "PPO-1676639715"
-models_dir1 = f"{solvers_files_directory_path}\\RL\\models\\{model_name1}"
-model_path1 = f"{models_dir1}\\9800"
-model1 = PPO.load(model_path1, env=env)
+    obs = env.reset(**kwargs)
+    done = False
+    while not done:
+        action, _states = current_model.predict(obs)
+        obs, reward, terminated, truncated, info = env.step(action)
+        done = terminated or truncated
+        rewards_list.append(reward)
 
-# How many evaluations
-# episodes = 150
-episodes = 50
+    return rewards_list
 
-final_reward_PPO_1 = [0]*episodes
-final_reward_rbc = [0]*episodes
+
+config_info = {
+    'basic': {'vehicle_to_everything': False, 'pv_system_available_in_model': False, 'battery_system_available_in_model': False},
+    'b-pv': {'vehicle_to_everything': False, 'pv_system_available_in_model': True, 'battery_system_available_in_model': True},
+    'v2x': {'vehicle_to_everything': True, 'pv_system_available_in_model': False, 'battery_system_available_in_model': False},
+    'v2x-b-pv': {'vehicle_to_everything': True, 'pv_system_available_in_model': True, 'battery_system_available_in_model': True}
+}
+
+envs = {
+    'basic': gym.make('SmartNanogridEnv-v0', **config_info['basic']),
+    'b-pv': gym.make('SmartNanogridEnv-v0', **config_info['b-pv']),
+    'v2x': gym.make('SmartNanogridEnv-v0', **config_info['v2x']),
+    'v2x-b-pv': gym.make('SmartNanogridEnv-v0', **config_info['v2x-b-pv'])
+}
+
+names = os.listdir('RL\\models')
+names = [name for name in names if name != '.gitignore']
+# names = ['DDPG-v2x-b-pv-1677431740', 'PPO-v2x-b-pv-1677428642']
+
+models = []
+for name in names:
+    model_dir = f"{solvers_files_directory_path}\\RL\\models\\{name}"
+    model_path = f"{model_dir}\\980000"
+
+    lowercase_name = name.lower()
+    if 'v2x-b-pv' in lowercase_name:
+        env_variant_name = 'v2x-b-pv'
+    elif 'v2x' in lowercase_name:
+        env_variant_name = 'v2x'
+    elif 'b-pv' in lowercase_name:
+        env_variant_name = 'b-pv'
+    elif 'basic' in lowercase_name:
+        env_variant_name = 'basic'
+    else:
+        raise ValueError(f"{name} should be a variant of a nanogrid model and have it specified in it's file name, "
+                         f"i.e. should be one of the following: [basic, b-pv, v2x, v2x-b-pv], but it is not!")
+    current_env = envs[env_variant_name]
+
+    uppercase_name = name.upper()
+    if 'DDPG' in uppercase_name:
+        new_model = DDPG.load(model_path, env=current_env)
+        models.append({'name': name, 'model': new_model, 'env_name': env_variant_name, 'info': {}})
+    elif 'PPO' in uppercase_name:
+        new_model = PPO.load(model_path, env=current_env)
+        models.append({'name': name, 'model': new_model, 'env_name': env_variant_name, 'info': {}})
+    else:
+        raise ValueError(f"{name} nanogrid model variant should in it's name have specified which algorithm it used "
+                         f"during model training, e.g. DDPG or PPO or ddpg or Ppo, etc. "
+                         f"Currently accepted algorithms are: DDPG and PPO!")
+
+episodes = 150
+
+final_rewards = {}
+mean_rewards = {}
+for name in names:
+    final_rewards[name] = [0]*episodes
+    mean_rewards[name] = 0
 
 for ep in range(episodes):
-    # print("episode = " + str(ep))
-    rewards_list_PPO_1 = []
-    rewards_list_rbc = []
+    reset_config = {'generate_new_initial_values': True}
 
-    # PPO
-    obs = env.reset(generate_new_initial_values=True)
-    done = False
-    while not done:
-        action, _states = model1.predict(obs)
-        obs, reward_PPO, done, info = env.step(action)
-        rewards_list_PPO_1.append(reward_PPO)
-    final_reward_PPO_1[ep] = sum(rewards_list_PPO_1)
+    for model in models:
+        env_variant_name = model['env_name']
 
-    # RBC case
-    obs = env.reset(generate_new_initial_values=False)
-    done = False
-    while not done:
-        action_rbc = RBC.select_action(env.env, obs)
-        obs, rewards_rbc, done, _ = env.step(action_rbc)
-        rewards_list_rbc.append(rewards_rbc)
-    final_reward_rbc[ep] = sum(rewards_list_rbc)
+        rewards = evaluate_model_for_single_episode(model['model'], envs[env_variant_name], reset_config)
 
-    if ep == episodes - 1:
-        print(f"PPO 1 rewards list: {rewards_list_PPO_1}")
-        print(f"RBC rewards list: {rewards_list_rbc}")
-env.close()
+        model_name = model['name']
+        final_rewards[model_name][ep] = sum(rewards)
 
-Mean_reward_PPO_1 = np.mean(final_reward_PPO_1)
-Mean_reward_RBC = np.mean(final_reward_rbc)
+        reset_config['generate_new_initial_values'] = False
 
-print(f"Final PPO 1 reward: {final_reward_PPO_1}")
-print(f"Final RBC reward: {final_reward_rbc}")
+        # Todo: Feat: Add possibility for saving initial_values and prediction results for each model so that they can
+        #       be investigated for unwanted model behaviour
 
-print(f"Mean PPO 1 reward: {Mean_reward_PPO_1}")
-print(f"Mean RBC reward: {Mean_reward_RBC}")
+for name in names:
+    mean_rewards[name] = np.mean(final_rewards[name])
+
+envs['basic'].close()
+envs['b-pv'].close()
+envs['v2x'].close()
+envs['v2x-b-pv'].close()
 
 plt.rcParams["figure.figsize"] = (15, 10)
 plt.rcParams.update({'font.size': 18})
-plt.plot(final_reward_PPO_1)
-plt.plot(final_reward_rbc)
+
+for name in names:
+    plt.plot(final_rewards[name])
+
 plt.xlabel('Evaluation episodes')
-plt.ylabel('Reward')
-plt.legend(['PPO_1', 'RBC'])
+plt.ylabel('Total reward per episode')
+
+plt.legend([name for name in names])
 plt.grid()
 
 file_time = time.time()
-plt.savefig(f"saved_figures\\figure_PPO_RBC_{int(file_time)}.png")
+# plt.savefig(f"saved_figures\\figure_final_rewards_{int(file_time)}.png")
+# plt.savefig(f"saved_figures\\figure_final_rewards_{int(file_time)}.png", dpi=300)
 
 plt.show()
-
-a = 1
-
-
-

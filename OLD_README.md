@@ -118,7 +118,7 @@ Keep in mind to include [requirements.txt](requirements.txt) for a list of Pytho
 - [PPO_train.py](solvers/RL/ppo_train.py): This python file includes conventional PPO implementation. __Note that when you run this script 2 additional folders will be created including log files and the trained model at different stages as in DDPG case. Logs and models have the corresponding tag 'PPO-.....'. The trained model will be used in order to evaluate the PPO algorithm during the evaluation phase__.
 
 - [check_main.py](/solvers/check_main.py): This is to call the Chargym environment.
-- [evaluate_trained_models.py](/solvers/evaluate_trained_models.py): This is to evaluate the trained models (DDPG,PPO and RBC).Indicatevely in paper we used the trained models at 940000 so as at lines 23 and 27 the corresponding .zip files are loaded.
+- [evaluate_trained_models.py](/solvers/evaluator.py): This is to evaluate the trained models (DDPG,PPO and RBC).Indicatevely in paper we used the trained models at 940000 so as at lines 23 and 27 the corresponding .zip files are loaded.
 
 
 
@@ -188,12 +188,12 @@ _If you want to train either DDPG or PPO using Chargym_:
 
 _If you want to evaluate the trained models_:
 1. __You have to modify by hand [Charging_Station_Enviroment.py](/smart_nanogrid_gym/envs/smart_nanogrid_environment.py) in line 89 to:__
-``` def reset(self, reset_flag): ``` __removing the value of reset_flag__. (Explanation comment: This is because the reset_flag is specified in [evaluate_trained_models.py](/solvers/evaluate_trained_models.py) in order to simulate diverse day configurations across episodes but the same say between all three implementations in order to evaluate them fairly as will be explained below.)
+``` def reset(self, reset_flag): ``` __removing the value of reset_flag__. (Explanation comment: This is because the reset_flag is specified in [evaluate_trained_models.py](/solvers/evaluator.py) in order to simulate diverse day configurations across episodes but the same say between all three implementations in order to evaluate them fairly as will be explained below.)
     
-2. __then run [evaluate_trained_models.py](/solvers/evaluate_trained_models.py) and you will get the comparison performance between DDPG, PPO and RBC such as:__
+2. __then run [evaluate_trained_models.py](/solvers/evaluator.py) and you will get the comparison performance between DDPG, PPO and RBC such as:__
    ![Comparison_Evaluation_Reward](https://github.com/Dellintel98/smart-nanogrid-gym/blob/main/smart-nanogrid-gym/images/Comparison_Evaluation_Reward.png)
    ![Comparison_Evaluation_Reward](smart_nanogrid_gym/images/Comparison_Evaluation_Reward.png)
- (Explanation comment: According to the previous comment related with the reset_flag, note that reset_flag=0 means that the environment simulates/emulates a new day and reset_flag=1 means that simulates the same day. This way, in order to compare two RL algorithms with the RBC the reset_flag=0 is already specified in [evaluate_trained_models.py](/solvers/evaluate_trained_models.py) at the start of each episode (right before) calling DDPG and then changed to reset_flag=1 for the other two methods within the same episode. This way the script will simulate the same day for all three approaches at each episode, but diverse days across episodes. For more, check the comments in [evaluate_trained_models.py](/solvers/evaluate_trained_models.py))
+ (Explanation comment: According to the previous comment related with the reset_flag, note that reset_flag=0 means that the environment simulates/emulates a new day and reset_flag=1 means that simulates the same day. This way, in order to compare two RL algorithms with the RBC the reset_flag=0 is already specified in [evaluate_trained_models.py](/solvers/evaluator.py) at the start of each episode (right before) calling DDPG and then changed to reset_flag=1 for the other two methods within the same episode. This way the script will simulate the same day for all three approaches at each episode, but diverse days across episodes. For more, check the comments in [evaluate_trained_models.py](/solvers/evaluator.py))
 
 _If you want to visualize the training_:
 1. __Use the following in the terminal: 

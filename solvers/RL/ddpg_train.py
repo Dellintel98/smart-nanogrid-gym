@@ -45,8 +45,8 @@ env_variants = [
 current_env = env_variants[3]
 current_env_name = current_env['variant_name']
 
-models_dir = f"models/DDPG-{current_env_name}{int(time.time())}"
-logdir = f"logs/DDPG-{current_env_name}{int(time.time())}"
+models_dir = f"models/DDPG-{current_env_name}"
+logdir = f"logs/DDPG-{current_env_name}"
 
 if not os.path.exists(models_dir):
     os.makedirs(models_dir)
@@ -72,7 +72,7 @@ for i in range(1, 50):
     model.learn(total_timesteps=TIMESTEPS, reset_num_timesteps=False, tb_log_name="DDPG")
     model.save(f"{models_dir}/{TIMESTEPS * i}")
 
-env.close
+env.close()
 
 end = time.time()
 

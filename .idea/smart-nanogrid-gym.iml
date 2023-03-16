@@ -4,8 +4,10 @@
     <content url="file://$MODULE_DIR$">
       <excludeFolder url="file://$MODULE_DIR$/smart_nanogrid_gym.egg-info" />
       <excludeFolder url="file://$MODULE_DIR$/venv" />
+      <excludeFolder url="file://$MODULE_DIR$/solvers/RL/logs/PPO-1676550101" />
+      <excludeFolder url="file://$MODULE_DIR$/solvers/RL/models/PPO-1676550101" />
     </content>
-    <orderEntry type="jdk" jdkName="Python 3.9 (smart-nanogrid-gym)" jdkType="Python SDK" />
+    <orderEntry type="jdk" jdkName="Python 3.8 (smart-nanogrid-gym)" jdkType="Python SDK" />
     <orderEntry type="sourceFolder" forTests="false" />
   </component>
 </module>
