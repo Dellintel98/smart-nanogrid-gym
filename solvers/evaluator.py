@@ -1,8 +1,7 @@
 import gym
-import smart_nanogrid_gym
+# import smart_nanogrid_gym
 import numpy as np
 import os
-import argparse
 
 from stable_baselines3 import DDPG, PPO
 import time
@@ -14,7 +13,7 @@ from smart_nanogrid_gym.utils.config import solvers_files_directory_path
 def evaluate_model_for_single_episode(current_model, env, kwargs):
     rewards_list = []
 
-    obs = env.reset(**kwargs)
+    obs, _ = env.reset(**kwargs)
     done = False
     while not done:
         action, _states = current_model.predict(obs)

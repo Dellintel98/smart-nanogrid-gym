@@ -14,7 +14,7 @@ from smart_nanogrid_gym.utils.config import solvers_files_directory_path
 def predict_single_day(current_model, env, kwargs):
     rewards_list = []
 
-    obs = env.reset(**kwargs)
+    obs, _ = env.reset(**kwargs)
     done = False
     while not done:
         action, _states = current_model.predict(obs)

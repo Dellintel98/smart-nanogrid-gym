@@ -228,7 +228,7 @@ class SmartNanogridEnv(gym.Env):
                                                                             self.TIME_INTERVAL)
         self.__load_initial_simulation_values(generate_new_initial_values)
 
-        return self.__get_observations()
+        return self.__get_observations(), {}
 
     def __load_initial_simulation_values(self, generate_new_initial_values):
         if generate_new_initial_values:
