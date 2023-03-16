@@ -11,6 +11,18 @@ from smart_nanogrid_gym.utils.pv_system_manager import PVSystemManager
 from ..utils.config import data_files_directory_path
 
 
+# Todo: Feat: Add stohasticity in vehicle departures
+# Todo: Feat: Add model training visualisation using pygame
+# Todo: Feat: Add possibility for Electric Vehicles to have different battery capacities
+# Todo: Feat: Add penalty for discharging vehicles if it happens except for steps in which some other vehicle is
+#             departing or plans to depart in next n steps
+# Todo: Feat: Add possibility to load model specifications from json or csv..., e.g. load pricing model for energy
+# Todo: Feat: Change request for charging from default 100% to +/-5% from per EV requested end state of charge
+
+# Todo: Train models in DDPG and PPO for these cases: a) basic, only battery, only PV, battery and PV, only v2x,
+#       only v2g, only v2v, v2v and battery, v2v and PV, v2g and battery, v2g and PV, v2v and battery and PV,
+#       v2g and battery and PV, v2x and battery and PV
+
 class SmartNanogridEnv(gym.Env):
     def __init__(self, price_model=0, pv_system_available_in_model=True, battery_system_available_in_model=True,
                  vehicle_to_everything=False):
