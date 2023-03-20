@@ -97,9 +97,6 @@ for ep in range(episodes):
 
         reset_config['generate_new_initial_values'] = False
 
-        # Todo: Feat: Add possibility for saving initial_values and prediction results for each model so that they can
-        #       be investigated for unwanted model behaviour
-
 for name in names:
     mean_rewards[name] = np.mean(final_rewards[name])
 

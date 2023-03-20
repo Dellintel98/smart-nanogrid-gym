@@ -64,10 +64,10 @@ for name in names:
     uppercase_name = name.upper()
     if 'DDPG' in uppercase_name:
         new_model = DDPG.load(model_path, env=current_env)
-        models.append({'name': name, 'model': new_model, 'env_name': env_variant_name, 'info': {}})
+        models.append({'name': name, 'model': new_model, 'env_name': env_variant_name, 'info': {'algorithm': 'DDPG'}})
     elif 'PPO' in uppercase_name:
         new_model = PPO.load(model_path, env=current_env)
-        models.append({'name': name, 'model': new_model, 'env_name': env_variant_name, 'info': {}})
+        models.append({'name': name, 'model': new_model, 'env_name': env_variant_name, 'info': {'algorithm': 'PPO'}})
     else:
         raise ValueError(f"{name} nanogrid model variant should in it's name have specified which algorithm it used "
                          f"during model training, e.g. DDPG or PPO or ddpg or Ppo, etc. "
@@ -80,9 +80,11 @@ for name in names:
     mean_rewards[name] = 0
 
 reset_config = {'generate_new_initial_values': False}
+# Todo: Feat: Specify reset path to initial_values for prediction
 for model in models:
     env_variant_name = model['env_name']
-
+    reset_config['algorithm_used'] = model['info']['algorithm']
+    reset_config['environment_mode'] = 'prediction'
     rewards = predict_single_day(model['model'], envs[env_variant_name], reset_config)
 
     model_name = model['name']

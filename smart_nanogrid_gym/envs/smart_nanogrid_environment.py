@@ -235,6 +235,8 @@ class SmartNanogridEnv(gym.Env):
             file_destination = 'training_files'
         elif self.ENVIRONMENT_MODE == 'evaluation':
             file_destination = 'evaluation_files'
+        elif self.ENVIRONMENT_MODE == 'prediction':
+            file_destination = 'single_prediction_files'
         else:
             file_destination = ''
 
