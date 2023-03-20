@@ -28,6 +28,10 @@ class Accountant:
         self.total_cost = self.grid_energy_cost + additional_cost
         return self.total_cost
 
+    def get_energy_price_at_time_t(self, t):
+        # Todo: Adjust method to include different simulation days
+        return self.energy_price[0, t]
+
     def get_energy_price(self, current_price_model, experiment_length_in_days, time_interval):
         self.energy_price = zeros((experiment_length_in_days, 2 * 24))
         self.set_energy_price(current_price_model, experiment_length_in_days, time_interval)

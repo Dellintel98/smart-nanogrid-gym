@@ -98,25 +98,8 @@ class SmartNanogridEnv(gym.Env):
         #       charged enough based on current action, and penalize wrong future actions
 
     def step(self, actions):
-        charger_actions = actions[0:self.NUMBER_OF_CHARGERS]
-
-        if self.BATTERY_SYSTEM_AVAILABLE_IN_MODEL:
-            battery_action = actions[-1]
-        else:
-            battery_action = 0
-        [total_charging_power, total_discharging_power] = self.charging_station.simulate_vehicle_charging(charger_actions,
-                                                                                                          self.timestep,
-                                                                                                          self.TIME_INTERVAL)
-        if self.PV_SYSTEM_AVAILABLE_IN_MODEL:
-            available_solar_power = self.pv_system_manager.get_available_solar_produced_power(self.TIME_INTERVAL)
-        else:
-            available_solar_power = 0
-
-        results = self.central_management_system.simulate(self.timestep, total_charging_power, total_discharging_power,
-                                                          available_solar_power, self.energy_price,
-                                                          self.charging_station.departing_vehicles,
-                                                          self.charging_station.vehicle_state_of_charge,
-                                                          battery_action, self.TIME_INTERVAL)
+        results = self.central_management_system.simulate(self.timestep, self.charging_station, self.NUMBER_OF_CHARGERS,
+                                                          self.pv_system_manager, actions, self.TIME_INTERVAL)
 
         self.total_cost_per_timestep.append(results['Total cost'])
         self.grid_power_per_timestep.append(results['Grid power'])
