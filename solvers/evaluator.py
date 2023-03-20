@@ -64,16 +64,17 @@ for name in names:
     uppercase_name = name.upper()
     if 'DDPG' in uppercase_name:
         new_model = DDPG.load(model_path, env=current_env)
-        models.append({'name': name, 'model': new_model, 'env_name': env_variant_name, 'info': {}})
+        models.append({'name': name, 'model': new_model, 'env_name': env_variant_name, 'info': {'algorithm': 'DDPG'}})
     elif 'PPO' in uppercase_name:
         new_model = PPO.load(model_path, env=current_env)
-        models.append({'name': name, 'model': new_model, 'env_name': env_variant_name, 'info': {}})
+        models.append({'name': name, 'model': new_model, 'env_name': env_variant_name, 'info': {'algorithm': 'PPO'}})
     else:
         raise ValueError(f"{name} nanogrid model variant should in it's name have specified which algorithm it used "
                          f"during model training, e.g. DDPG or PPO or ddpg or Ppo, etc. "
                          f"Currently accepted algorithms are: DDPG and PPO!")
 
-episodes = 150
+# episodes = 150
+episodes = 5
 
 final_rewards = {}
 mean_rewards = {}
@@ -87,6 +88,8 @@ for ep in range(episodes):
     for model in models:
         env_variant_name = model['env_name']
 
+        reset_config['algorithm_used'] = model['info']['algorithm']
+        reset_config['environment_mode'] = 'evaluation'
         rewards = evaluate_model_for_single_episode(model['model'], envs[env_variant_name], reset_config)
 
         model_name = model['name']

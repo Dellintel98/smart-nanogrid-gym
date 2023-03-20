@@ -8,7 +8,7 @@ import time
 from smart_nanogrid_gym.utils.central_management_system import CentralManagementSystem
 from smart_nanogrid_gym.utils.charging_station import ChargingStation
 from smart_nanogrid_gym.utils.pv_system_manager import PVSystemManager
-from ..utils.config import data_files_directory_path
+from ..utils.config import data_files_directory_path, solvers_files_directory_path
 
 
 # Todo: Feat: Add stohasticity in vehicle departures
@@ -25,7 +25,9 @@ from ..utils.config import data_files_directory_path
 
 class SmartNanogridEnv(gym.Env):
     def __init__(self, price_model=0, pv_system_available_in_model=True, battery_system_available_in_model=True,
-                 vehicle_to_everything=False):
+                 vehicle_to_everything=False, algorithm_used='', environment_mode=''):
+        self.ALGORITHM_USED = algorithm_used
+        self.ENVIRONMENT_MODE = environment_mode
         # Add building_in_nanogrid=False, building_demand=False as init arguments
         self.NUMBER_OF_CHARGERS = 8
         self.NUMBER_OF_DAYS_TO_PREDICT = 1
@@ -220,7 +222,31 @@ class SmartNanogridEnv(gym.Env):
         }
         savemat(data_files_directory_path + '\\prediction_results.mat', {'Prediction_results': prediction_results})
 
-    def reset(self, generate_new_initial_values=True, **kwargs):
+        if self.BATTERY_SYSTEM_AVAILABLE_IN_MODEL and self.PV_SYSTEM_AVAILABLE_IN_MODEL and self.VEHICLE_TO_EVERYTHING:
+            model_variant_name = 'v2x-b-pv'
+        elif self.VEHICLE_TO_EVERYTHING:
+            model_variant_name = 'v2x'
+        elif self.BATTERY_SYSTEM_AVAILABLE_IN_MODEL and self.PV_SYSTEM_AVAILABLE_IN_MODEL:
+            model_variant_name = 'b-pv'
+        else:
+            model_variant_name = 'basic'
+
+        if self.ENVIRONMENT_MODE == 'training':
+            file_destination = 'training_files'
+        elif self.ENVIRONMENT_MODE == 'evaluation':
+            file_destination = 'evaluation_files'
+        else:
+            file_destination = ''
+
+        saving_directory_path = solvers_files_directory_path + '\\RL\\' + file_destination + '\\'
+
+        file_name = f'{self.ALGORITHM_USED}-{model_variant_name}-prediction_results.mat'
+        savemat(saving_directory_path + file_name, {'Prediction_results': prediction_results})
+
+        self.charging_station.save_initial_values(saving_directory_path,
+                                                  filename_prefix=f'{self.ALGORITHM_USED}-{model_variant_name}')
+
+    def reset(self, generate_new_initial_values=True, algorithm_used='', environment_mode='', **kwargs):
         self.timestep = 0
         self.simulated_single_day = False
         self.total_cost_per_timestep = []
@@ -230,6 +256,9 @@ class SmartNanogridEnv(gym.Env):
         self.penalty_per_timestep = []
         self.battery_per_timestep = []
         self.grid_energy_cost_per_timestep = []
+
+        self.ALGORITHM_USED = algorithm_used
+        self.ENVIRONMENT_MODE = environment_mode
 
         if self.PV_SYSTEM_AVAILABLE_IN_MODEL:
             self.solar_radiation = self.pv_system_manager.get_solar_radiation()

@@ -25,6 +25,7 @@ class ChargingStation:
         self.electric_vehicle_info = ElectricVehicle(battery_capacity=40, current_capacity=0, charging_efficiency=0.95,
                                                      discharging_efficiency=0.95, max_charging_power=22,
                                                      max_discharging_power=22)
+        self.generated_initial_values = {}
 
     def simulate(self, current_timestep, time_interval):
         self.find_departing_vehicles(current_timestep, time_interval)
@@ -149,10 +150,16 @@ class ChargingStation:
             'Charger_occupancy': self.charger_occupancy.tolist()
         } if initial_vehicle_presence_generated else {}
 
+        self.generated_initial_values = generated_initial_values
+        # self.generated_initial_values = generated_initial_values_json
+
         with open(data_files_directory_path + "\\initial_values.json", "w") as fp:
             json.dump(generated_initial_values_json, fp, indent=4)
 
         savemat(data_files_directory_path + '\\initial_values.mat', generated_initial_values)
+
+    def save_initial_values(self, path, filename_prefix):
+        savemat(path + f'\\{filename_prefix}-initial_values.mat', self.generated_initial_values)
 
     def generate_initial_vehicle_presence(self, initial_variables_cleared, time_interval):
         if initial_variables_cleared:
