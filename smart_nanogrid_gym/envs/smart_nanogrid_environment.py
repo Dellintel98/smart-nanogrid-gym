@@ -14,7 +14,7 @@ from ..utils.config import data_files_directory_path, solvers_files_directory_pa
 # Todo: Feat: Add stohasticity in vehicle departures
 # Todo: Feat: Add model training visualisation using pygame
 # Todo: Feat: Add possibility for Electric Vehicles to have different battery capacities
-# Todo: Feat: Add penalty for discharging vehicles if it happens except for steps in which some other vehicle is
+# Todo: Feat: Add penalty for discharging vehicles (v2v) if it happens except for steps in which some other vehicle is
 #             departing or plans to depart in next n steps
 # Todo: Feat: Add possibility to load model specifications from json or csv..., e.g. load pricing model for energy
 # Todo: Feat: Change request for charging from default 100% to +/-5% from per EV requested end state of charge
@@ -45,8 +45,6 @@ class SmartNanogridEnv(gym.Env):
                                                                  self.VEHICLE_TO_EVERYTHING, self.CURRENT_PRICE_MODEL,
                                                                  self.NUMBER_OF_DAYS_TO_PREDICT, self.TIME_INTERVAL,
                                                                  self.NUMBER_OF_CHARGERS)
-        if self.PV_SYSTEM_AVAILABLE_IN_MODEL:
-            self.pv_system_manager = PVSystemManager(self.NUMBER_OF_DAYS_TO_PREDICT, self.TIME_INTERVAL)
 
         self.timestep = None
         self.info = None
@@ -94,8 +92,7 @@ class SmartNanogridEnv(gym.Env):
         #       charged enough based on current action, and penalize wrong future actions
 
     def step(self, actions):
-        results = self.central_management_system.simulate(self.timestep, self.NUMBER_OF_CHARGERS,
-                                                          self.pv_system_manager, actions, self.TIME_INTERVAL)
+        results = self.central_management_system.simulate(self.timestep, actions)
 
         self.total_cost_per_timestep.append(results['Total cost'])
         self.grid_power_per_timestep.append(results['Grid power'])
@@ -124,33 +121,31 @@ class SmartNanogridEnv(gym.Env):
         min_timesteps_ahead = self.timestep + 1
         max_timesteps_ahead = min_timesteps_ahead + self.NUMBER_OF_HOURS_AHEAD
 
-        [departure_times, vehicles_state_of_charge, battery_soc, energy_price, price_predictions] = \
-            self.central_management_system.observe(self.timestep, min_timesteps_ahead, max_timesteps_ahead)
+        results = self.central_management_system.observe(self.timestep, min_timesteps_ahead, max_timesteps_ahead)
 
         if self.PV_SYSTEM_AVAILABLE_IN_MODEL:
-            solar_radiation = self.pv_system_manager.get_normalized_solar_radiation_at_timestep_t(self.timestep)
-            radiation_predictions = self.pv_system_manager.get_normalized_solar_predictions_in_range(min_timesteps_ahead,
-                                                                                                     max_timesteps_ahead)
-
-            normalized_disturbances_observation_at_current_timestep = np.array([solar_radiation, energy_price])
-            normalized_predictions = np.concatenate((np.array([radiation_predictions]), np.array([price_predictions])),
+            normalized_disturbances_observation_at_current_timestep = np.array([results['solar_radiation'],
+                                                                                results['energy_price']])
+            normalized_predictions = np.concatenate((np.array([results['radiation_predictions']]),
+                                                     np.array([results['price_predictions']])),
                                                     axis=None)
         else:
-            normalized_disturbances_observation_at_current_timestep = np.array([energy_price])
-            normalized_predictions = np.array([price_predictions])
+            normalized_disturbances_observation_at_current_timestep = np.array([results['energy_price']])
+            normalized_predictions = np.array([results['price_predictions']])
 
-        departures_array = np.array(departure_times)
+        departures_array = np.array(results['departure_times'])
         normalized_departures = departures_array / 24
+
         if self.BATTERY_SYSTEM_AVAILABLE_IN_MODEL:
             normalized_states = np.concatenate((
-                np.array(vehicles_state_of_charge),
+                np.array(results['vehicles_state_of_charge']),
                 normalized_departures,
-                np.array(battery_soc)),
+                np.array(results['battery_soc'])),
                 axis=None
             )
         else:
             normalized_states = np.concatenate((
-                np.array(vehicles_state_of_charge),
+                np.array(results['vehicles_state_of_charge']),
                 normalized_departures),
                 axis=None
             )
@@ -172,7 +167,7 @@ class SmartNanogridEnv(gym.Env):
 
     def __save_prediction_results(self):
         if self.PV_SYSTEM_AVAILABLE_IN_MODEL:
-            available_solar_energy = self.pv_system_manager.get_available_solar_energy()
+            available_solar_energy = self.central_management_system.pv_system_manager.get_available_solar_energy()
         else:
             available_solar_energy = []
 

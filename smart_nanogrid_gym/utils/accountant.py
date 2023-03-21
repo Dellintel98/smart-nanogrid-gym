@@ -9,9 +9,8 @@ class Accountant:
         self.high_tariff = 0
         self.low_tariff = 0
         self.set_grid_tariffs()
-        self.energy_price = zeros((experiment_length_in_days, 2 * 24))
-        self.energy_price_max = self.energy_price.max(where=(self.energy_price >= 0), initial=0)
-        self.initialise_energy_price(current_price_model, experiment_length_in_days, time_interval)
+        self.energy_price = zeros((1, 2 * 24))
+        self.energy_price_max = 0
 
     def set_grid_tariffs(self):
         grid_tariff_high = 0.028
@@ -43,6 +42,7 @@ class Accountant:
     def set_energy_price(self, current_price_model, experiment_length_in_days, time_interval):
         self.energy_price = zeros((experiment_length_in_days, 2 * 24))
         self.initialise_energy_price(current_price_model, experiment_length_in_days, time_interval)
+        self.energy_price_max = self.energy_price.max(where=(self.energy_price >= 0), initial=0)
 
     def initialise_energy_price(self, current_price_model, experiment_length_in_days, time_interval):
         price_day = self.get_price_day(current_price_model, time_interval)
