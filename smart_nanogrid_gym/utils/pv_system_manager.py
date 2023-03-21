@@ -17,7 +17,7 @@ class PVSystemManager:
         self.pv_system = PVSystem(length=2.279, width=1.134, depth=20, total_dimensions=2.279*1.134*20, efficiency=0.21)
         self.solar_irradiance = self.load_solar_irradiance_per_timestep(padded_experiment_length, time_interval)
         self.solar_irradiance_2 = self.reshape_solar_irradiance_per_days_of_experiment(number_of_days_to_predict)
-        self.max_radiation = self.solar_irradiance_2.max()
+        self.max_radiation = self.solar_irradiance_2.max(where=(self.solar_irradiance_2 >= 0), initial=0)
         self.available_solar_energy = self.calculate_available_solar_energy()
 
     def load_solar_irradiance_per_timestep(self, padded_experiment_length, time_interval):
