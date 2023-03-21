@@ -2,17 +2,19 @@ from numpy import zeros, array, concatenate, random
 
 from smart_nanogrid_gym.utils.accountant import Accountant
 from smart_nanogrid_gym.utils.battery_energy_storage_system import BatteryEnergyStorageSystem
+from smart_nanogrid_gym.utils.charging_station import ChargingStation
 from smart_nanogrid_gym.utils.penaliser import Penaliser
 
 
 class CentralManagementSystem:
     def __init__(self, battery_system_available_in_model, pv_system_available_in_model, vehicle_to_everything,
-                 current_price_model, experiment_length_in_days, time_interval):
+                 current_price_model, experiment_length_in_days, time_interval, number_of_chargers):
         # To-do: Add building_demand, building_in_nanogrid as init arguments
+        self.TIME_INTERVAL = time_interval
         self.battery_system = self.initialise_battery_system(battery_system_available_in_model)
         self.pv_system_available = pv_system_available_in_model
-
         self.vehicle_to_everything = vehicle_to_everything
+        self.charging_station = ChargingStation(number_of_chargers, time_interval)
         self.accountant = Accountant()
         self.accountant.set_energy_price(current_price_model, experiment_length_in_days, time_interval)
         self.penaliser = Penaliser()
@@ -23,17 +25,30 @@ class CentralManagementSystem:
         else:
             return None
 
-    def simulate(self, timestep, charging_station, number_of_chargers, pv_system_manager,
-                 actions, time_interval):
+    def observe(self, timestep, min_timesteps_ahead, max_timesteps_ahead):
+        [departure_times, vehicles_state_of_charge] = self.charging_station.simulate(timestep, self.TIME_INTERVAL)
+
+        if self.battery_system:
+            battery_soc = self.battery_system.get_state_of_charge()
+        else:
+            battery_soc = 0.0
+
+        energy_price = self.accountant.get_normalised_energy_price_at_time_t(timestep)
+        price_predictions = self.accountant.get_normalised_energy_price_in_range(min_timesteps_ahead,
+                                                                                 max_timesteps_ahead)
+
+        return departure_times, vehicles_state_of_charge, battery_soc, energy_price, price_predictions
+
+    def simulate(self, timestep, number_of_chargers, pv_system_manager, actions, time_interval):
         charger_actions = actions[0:number_of_chargers]
 
         if self.battery_system:
             battery_action = actions[-1]
         else:
             battery_action = 0
-        [total_charging_power, total_discharging_power] = charging_station.simulate_vehicle_charging(charger_actions,
-                                                                                                     timestep,
-                                                                                                     time_interval)
+        [total_charging_power, total_discharging_power] = self.charging_station.simulate_vehicle_charging(charger_actions,
+                                                                                                          timestep,
+                                                                                                          time_interval)
         if self.pv_system_available:
             available_solar_power = pv_system_manager.get_available_solar_produced_power(time_interval)
         else:
@@ -41,8 +56,8 @@ class CentralManagementSystem:
 
         management_results = self.manage_nanogrid(timestep, total_charging_power, total_discharging_power,
                                                   available_solar_power,
-                                                  charging_station.departing_vehicles,
-                                                  charging_station.vehicle_state_of_charge,
+                                                  self.charging_station.departing_vehicles,
+                                                  self.charging_station.vehicle_state_of_charge,
                                                   battery_action, time_interval)
         return management_results
 
@@ -121,7 +136,7 @@ class CentralManagementSystem:
             return 0
 
     def get_normalised_energy_price_at_timestep_t(self, t):
-        return self.accountant.get_normalised_energy_price_at_time_t(t)
+        return
 
     def get_normalised_energy_price_in_range(self, min_timesteps_ahead, max_timesteps_ahead):
         return self.accountant.get_normalised_energy_price_in_range(min_timesteps_ahead, max_timesteps_ahead)

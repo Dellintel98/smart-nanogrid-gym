@@ -40,13 +40,11 @@ class SmartNanogridEnv(gym.Env):
         self.VEHICLE_TO_EVERYTHING = vehicle_to_everything
         # self.BUILDING_IN_NANOGRID = building_in_nanogrid
 
-        self.charging_station = ChargingStation(self.NUMBER_OF_CHARGERS, self.TIME_INTERVAL)
-        # self.central_management_system = CentralManagementSystem(battery_system_available_in_model,
-        #                                                          building_demand, building_in_nanogrid)
         self.central_management_system = CentralManagementSystem(self.BATTERY_SYSTEM_AVAILABLE_IN_MODEL,
                                                                  self.PV_SYSTEM_AVAILABLE_IN_MODEL,
                                                                  self.VEHICLE_TO_EVERYTHING, self.CURRENT_PRICE_MODEL,
-                                                                 self.NUMBER_OF_DAYS_TO_PREDICT, self.TIME_INTERVAL)
+                                                                 self.NUMBER_OF_DAYS_TO_PREDICT, self.TIME_INTERVAL,
+                                                                 self.NUMBER_OF_CHARGERS)
         if self.PV_SYSTEM_AVAILABLE_IN_MODEL:
             self.pv_system_manager = PVSystemManager(self.NUMBER_OF_DAYS_TO_PREDICT, self.TIME_INTERVAL)
 
@@ -96,7 +94,7 @@ class SmartNanogridEnv(gym.Env):
         #       charged enough based on current action, and penalize wrong future actions
 
     def step(self, actions):
-        results = self.central_management_system.simulate(self.timestep, self.charging_station, self.NUMBER_OF_CHARGERS,
+        results = self.central_management_system.simulate(self.timestep, self.NUMBER_OF_CHARGERS,
                                                           self.pv_system_manager, actions, self.TIME_INTERVAL)
 
         self.total_cost_per_timestep.append(results['Total cost'])
@@ -123,19 +121,11 @@ class SmartNanogridEnv(gym.Env):
         return observations, reward, self.simulated_single_day, out_of_scope, self.info
 
     def __get_observations(self):
-        [departure_times, vehicles_state_of_charge] = self.charging_station.simulate(self.timestep, self.TIME_INTERVAL)
-
-        if self.BATTERY_SYSTEM_AVAILABLE_IN_MODEL:
-            battery_soc = self.central_management_system.battery_system.get_state_of_charge()
-        else:
-            battery_soc = 0.0
-
         min_timesteps_ahead = self.timestep + 1
         max_timesteps_ahead = min_timesteps_ahead + self.NUMBER_OF_HOURS_AHEAD
 
-        energy_price = self.central_management_system.get_normalised_energy_price_at_timestep_t(self.timestep)
-        price_predictions = self.central_management_system.get_normalised_energy_price_in_range(min_timesteps_ahead,
-                                                                                                max_timesteps_ahead)
+        [departure_times, vehicles_state_of_charge, battery_soc, energy_price, price_predictions] = \
+            self.central_management_system.observe(self.timestep, min_timesteps_ahead, max_timesteps_ahead)
 
         if self.PV_SYSTEM_AVAILABLE_IN_MODEL:
             solar_radiation = self.pv_system_manager.get_normalized_solar_radiation_at_timestep_t(self.timestep)
@@ -187,7 +177,7 @@ class SmartNanogridEnv(gym.Env):
             available_solar_energy = []
 
         prediction_results = {
-            'SOC': self.charging_station.vehicle_state_of_charge,
+            'SOC': self.central_management_system.charging_station.vehicle_state_of_charge,
             'Grid_power': self.grid_power_per_timestep,
             'Grid_energy': self.grid_energy_per_timestep,
             'Utilized_solar_energy': self.solar_energy_utilization_per_timestep,
@@ -222,8 +212,8 @@ class SmartNanogridEnv(gym.Env):
         file_name = f'{self.ALGORITHM_USED}-{model_variant_name}-prediction_results.mat'
         savemat(saving_directory_path + file_name, {'Prediction_results': prediction_results})
 
-        self.charging_station.save_initial_values(saving_directory_path,
-                                                  filename_prefix=f'{self.ALGORITHM_USED}-{model_variant_name}')
+        self.central_management_system.charging_station.save_initial_values(saving_directory_path,
+                                                                            filename_prefix=f'{self.ALGORITHM_USED}-{model_variant_name}')
 
     def reset(self, generate_new_initial_values=True, algorithm_used='', environment_mode='', **kwargs):
         self.timestep = 0
@@ -245,9 +235,9 @@ class SmartNanogridEnv(gym.Env):
 
     def __load_initial_simulation_values(self, generate_new_initial_values):
         if generate_new_initial_values:
-            self.charging_station.generate_new_initial_values(self.TIME_INTERVAL)
+            self.central_management_system.charging_station.generate_new_initial_values(self.TIME_INTERVAL)
         else:
-            self.charging_station.load_initial_values()
+            self.central_management_system.charging_station.load_initial_values()
 
     def render(self, mode="human"):
         pass
