@@ -74,30 +74,24 @@ class CentralManagementSystem:
         }
 
     def simulate(self, timestep, actions):
+        management_results = self.manage_nanogrid(timestep, actions)
+        return management_results
+
+    def manage_nanogrid(self, timestep, actions):
         charger_actions = actions[0:self.NUMBER_OF_CHARGERS]
 
         if self.battery_system:
             battery_action = actions[-1]
         else:
             battery_action = 0
+
         [total_charging_power, total_discharging_power] = self.charging_station.simulate_vehicle_charging(charger_actions,
                                                                                                           timestep,
                                                                                                           self.TIME_INTERVAL)
         if self.pv_system_manager:
-            available_solar_power = self.pv_system_manager.get_available_solar_produced_power(self.TIME_INTERVAL)
+            available_solar_power = self.pv_system_manager.get_available_solar_produced_power_at_timestep_t(timestep)
         else:
             available_solar_power = 0
-
-        management_results = self.manage_nanogrid(timestep, total_charging_power, total_discharging_power,
-                                                  available_solar_power,
-                                                  self.charging_station.departing_vehicles,
-                                                  self.charging_station.vehicle_state_of_charge,
-                                                  battery_action)
-        return management_results
-
-    def manage_nanogrid(self, timestep, total_charging_power, total_discharging_power, solar_power,
-                        departing_vehicles, soc, battery_action):
-        available_solar_power = self.get_available_solar_power_at_current_timestep(solar_power, timestep)
 
         total_power = total_charging_power + total_discharging_power
         grid_power = self.calculate_grid_power(total_power, available_solar_power, battery_action)
@@ -106,7 +100,8 @@ class CentralManagementSystem:
         energy_price = self.accountant.get_energy_price_at_time_t(timestep)
         grid_energy_cost = self.accountant.calculate_grid_energy_cost(grid_energy, energy_price)
 
-        self.penaliser.calculate_insufficiently_charged_penalty(departing_vehicles, soc, timestep)
+        self.penaliser.calculate_insufficiently_charged_penalty(self.charging_station.departing_vehicles,
+                                                                self.charging_station.vehicle_state_of_charge, timestep)
 
         total_penalty = self.penaliser.get_total_penalty()
         total_cost = self.accountant.calculate_total_cost(additional_cost=total_penalty)
@@ -125,13 +120,6 @@ class CentralManagementSystem:
             'Battery state of charge': battery_soc,
             'Grid energy cost': grid_energy_cost
         }
-
-    def get_available_solar_power_at_current_timestep(self, solar_power, current_timestep):
-        if self.pv_system_manager:
-            available_solar_power = solar_power[0, current_timestep]
-        else:
-            available_solar_power = 0
-        return available_solar_power
 
     def calculate_grid_power(self, power_demand, available_solar_power, battery_action):
         # if building_in_nanogrid:

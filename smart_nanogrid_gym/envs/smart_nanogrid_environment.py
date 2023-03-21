@@ -224,6 +224,8 @@ class SmartNanogridEnv(gym.Env):
         self.ALGORITHM_USED = algorithm_used
         self.ENVIRONMENT_MODE = environment_mode
 
+        # Todo: Feat: Add reset to all subclasses and to price and pv if different models have different configs for them
+
         self.__load_initial_simulation_values(generate_new_initial_values)
 
         return self.__get_observations(), {}

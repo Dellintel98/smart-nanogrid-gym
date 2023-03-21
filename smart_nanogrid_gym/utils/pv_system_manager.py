@@ -19,6 +19,7 @@ class PVSystemManager:
         self.solar_irradiance_2 = self.reshape_solar_irradiance_per_days_of_experiment(number_of_days_to_predict)
         self.max_radiation = self.solar_irradiance_2.max(where=(self.solar_irradiance_2 >= 0), initial=0)
         self.available_solar_energy = self.calculate_available_solar_energy()
+        self.available_solar_power = self.calculate_available_solar_produced_power(time_interval)
 
     def load_solar_irradiance_per_timestep(self, padded_experiment_length, time_interval):
         solar_irradiance_forecast = self.load_raw_irradiance_data_from_mat_file('solar_irradiance.mat')
@@ -83,5 +84,8 @@ class PVSystemManager:
     def get_normalized_solar_predictions_in_range(self, min_timesteps_ahead, max_timesteps_ahead):
         return self.solar_irradiance_2[0, min_timesteps_ahead:max_timesteps_ahead] / self.max_radiation
 
-    def get_available_solar_produced_power(self, time_interval):
+    def calculate_available_solar_produced_power(self, time_interval):
         return self.available_solar_energy / time_interval
+
+    def get_available_solar_produced_power_at_timestep_t(self, t):
+        return self.available_solar_power[0, t]
