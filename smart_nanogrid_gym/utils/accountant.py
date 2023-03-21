@@ -9,7 +9,9 @@ class Accountant:
         self.high_tariff = 0
         self.low_tariff = 0
         self.set_grid_tariffs()
-        self.energy_price = None
+        self.energy_price = zeros((experiment_length_in_days, 2 * 24))
+        self.energy_price_max = self.energy_price.max(where=(self.energy_price >= 0), initial=0)
+        self.initialise_energy_price(current_price_model, experiment_length_in_days, time_interval)
 
     def set_grid_tariffs(self):
         grid_tariff_high = 0.028
@@ -32,12 +34,17 @@ class Accountant:
         # Todo: Adjust method to include different simulation days
         return self.energy_price[0, t]
 
-    def get_energy_price(self, current_price_model, experiment_length_in_days, time_interval):
-        self.energy_price = zeros((experiment_length_in_days, 2 * 24))
-        self.set_energy_price(current_price_model, experiment_length_in_days, time_interval)
-        return self.energy_price
+    def get_normalised_energy_price_at_time_t(self, t):
+        return self.energy_price[0, t] / self.energy_price_max
+
+    def get_normalised_energy_price_in_range(self, min_timesteps_ahead, max_timesteps_ahead):
+        return self.energy_price[0, min_timesteps_ahead:max_timesteps_ahead] / self.energy_price_max
 
     def set_energy_price(self, current_price_model, experiment_length_in_days, time_interval):
+        self.energy_price = zeros((experiment_length_in_days, 2 * 24))
+        self.initialise_energy_price(current_price_model, experiment_length_in_days, time_interval)
+
+    def initialise_energy_price(self, current_price_model, experiment_length_in_days, time_interval):
         price_day = self.get_price_day(current_price_model, time_interval)
         for day in range(0, experiment_length_in_days):
             self.energy_price[day, :] = price_day

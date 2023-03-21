@@ -6,12 +6,15 @@ from smart_nanogrid_gym.utils.penaliser import Penaliser
 
 
 class CentralManagementSystem:
-    def __init__(self, battery_system_available_in_model, pv_system_available_in_model, vehicle_to_everything):
+    def __init__(self, battery_system_available_in_model, pv_system_available_in_model, vehicle_to_everything,
+                 current_price_model, experiment_length_in_days, time_interval):
         # To-do: Add building_demand, building_in_nanogrid as init arguments
         self.battery_system = self.initialise_battery_system(battery_system_available_in_model)
         self.pv_system_available = pv_system_available_in_model
+
         self.vehicle_to_everything = vehicle_to_everything
         self.accountant = Accountant()
+        self.accountant.set_energy_price(current_price_model, experiment_length_in_days, time_interval)
         self.penaliser = Penaliser()
 
     def initialise_battery_system(self, battery_system_available_in_model):
@@ -117,5 +120,8 @@ class CentralManagementSystem:
             # Todo: Feat: Add penalty for wasted energy/power -> wasted_power = (+||-???)remaining_available_power
             return 0
 
-    def get_energy_price(self, current_price_model, experiment_length_in_days, time_interval):
-        return self.accountant.get_energy_price(current_price_model, experiment_length_in_days, time_interval)
+    def get_normalised_energy_price_at_timestep_t(self, t):
+        return self.accountant.get_normalised_energy_price_at_time_t(t)
+
+    def get_normalised_energy_price_in_range(self, min_timesteps_ahead, max_timesteps_ahead):
+        return self.accountant.get_normalised_energy_price_in_range(min_timesteps_ahead, max_timesteps_ahead)
