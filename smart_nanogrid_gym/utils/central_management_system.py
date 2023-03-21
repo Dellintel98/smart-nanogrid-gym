@@ -2,6 +2,7 @@ from numpy import zeros, array, concatenate, random
 
 from smart_nanogrid_gym.utils.accountant import Accountant
 from smart_nanogrid_gym.utils.battery_energy_storage_system import BatteryEnergyStorageSystem
+from smart_nanogrid_gym.utils.penaliser import Penaliser
 
 
 class CentralManagementSystem:
@@ -13,6 +14,7 @@ class CentralManagementSystem:
         self.pv_system_available = pv_system_available_in_model
         self.vehicle_to_everything = vehicle_to_everything
         self.accountant = Accountant()
+        self.penaliser = Penaliser()
 
     def initialise_battery_system(self, battery_system_available_in_model):
         if battery_system_available_in_model:
@@ -54,11 +56,11 @@ class CentralManagementSystem:
 
         energy_price = self.accountant.get_energy_price_at_time_t(timestep)
         self.grid_energy_cost = self.accountant.calculate_grid_energy_cost(grid_energy, energy_price)
-        insufficiently_charged_vehicles_penalty = self.calculate_insufficiently_charged_penalty(departing_vehicles, soc,
-                                                                                                timestep)
+
+        self.penaliser.calculate_insufficiently_charged_penalty(departing_vehicles, soc, timestep)
         # Todo: Feat: Add Penaliser class to include all penalty calculations
 
-        total_penalty = insufficiently_charged_vehicles_penalty + battery_penalty
+        total_penalty = self.penaliser.get_total_penalty()
         self.total_cost = self.accountant.calculate_total_cost(additional_cost=total_penalty)
 
         if self.battery_system:
@@ -100,36 +102,24 @@ class CentralManagementSystem:
 
     def calculate_amount_of_power_supplied_from_grid(self, power_demand, battery_action, time_interval):
         if self.battery_system and battery_action != 0:
-            remaining_power_demand, battery_penalty = self.battery_system.discharge(power_demand, battery_action, time_interval)
-            return remaining_power_demand, battery_penalty
+            self.penaliser.penalise_battery_discharging(battery_action)
+            remaining_power_demand = self.battery_system.discharge(power_demand, battery_action, time_interval)
+            return remaining_power_demand
         else:
-            return power_demand, 0
+            return power_demand
 
     def calculate_amount_of_power_supplied_to_grid(self, available_power, battery_action, time_interval):
         if self.battery_system and battery_action != 0:
-            remaining_available_power, battery_penalty = self.battery_system.charge(available_power, battery_action, time_interval)
+            self.penaliser.penalise_battery_charging(battery_action)
+            remaining_available_power = self.battery_system.charge(available_power, battery_action, time_interval)
         else:
             remaining_available_power = available_power
-            battery_penalty = 0
 
         if self.vehicle_to_everything:
-            return -remaining_available_power, battery_penalty
+            return -remaining_available_power
         else:
             # Todo: Feat: Add penalty for wasted energy/power -> wasted_power = (+||-???)remaining_available_power
-            return 0, battery_penalty
-
-    def calculate_insufficiently_charged_penalty(self, departing_vehicles, soc, timestep):
-        penalties_per_departing_vehicle = []
-        for vehicle in range(len(departing_vehicles)):
-            penalty = self.calculate_insufficiently_charged_penalty_per_vehicle(departing_vehicles[vehicle], soc, timestep)
-            penalties_per_departing_vehicle.append(penalty)
-
-        return sum(penalties_per_departing_vehicle)
-
-    def calculate_insufficiently_charged_penalty_per_vehicle(self, vehicle, soc, timestep):
-        uncharged_capacity = 1 - soc[vehicle, timestep - 1]
-        penalty = (uncharged_capacity * 2) ** 2
-        return penalty
+            return 0
 
     def get_energy_price(self, current_price_model, experiment_length_in_days, time_interval):
         return self.accountant.get_energy_price(current_price_model, experiment_length_in_days, time_interval)

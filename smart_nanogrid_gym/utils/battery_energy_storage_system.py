@@ -42,12 +42,6 @@ class BatteryEnergyStorageSystem:
 
     def discharge(self, power_demand, battery_action, time_interval):
         capacity_available_to_discharge = self.current_capacity - self.depth_of_discharge
-        # Todo: Feat: Add penalty for positive action when trying to discharge battery
-        if battery_action > 0:
-            battery_penalty = battery_action
-        else:
-            battery_penalty = 0
-            # Todo: Feat: Add battery_penalty = battery_action or different penalising strategy
 
         if capacity_available_to_discharge > 0:
             power_available_for_discharge = (capacity_available_to_discharge * self.max_capacity) / time_interval
@@ -62,9 +56,9 @@ class BatteryEnergyStorageSystem:
 
             self.current_capacity = self.current_capacity + (discharging_power * time_interval) / self.max_capacity
 
-            return remaining_demand, battery_penalty
+            return remaining_demand
         else:
-            return power_demand, battery_penalty
+            return power_demand
 
     def get_state_of_charge(self):
         return self.current_capacity
