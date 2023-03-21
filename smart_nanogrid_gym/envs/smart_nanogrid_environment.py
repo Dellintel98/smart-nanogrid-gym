@@ -52,7 +52,6 @@ class SmartNanogridEnv(gym.Env):
         self.timestep = None
         self.info = None
 
-        self.available_solar_energy = None
         self.energy_price = None
         self.grid_energy_per_timestep, self.solar_energy_utilization_per_timestep = None, None
         self.total_cost_per_timestep, self.penalty_per_timestep = None, None
@@ -186,7 +185,7 @@ class SmartNanogridEnv(gym.Env):
 
     def __save_prediction_results(self):
         if self.PV_SYSTEM_AVAILABLE_IN_MODEL:
-            available_solar_energy = self.available_solar_energy
+            available_solar_energy = self.pv_system_manager.get_available_solar_energy()
         else:
             available_solar_energy = []
 
@@ -242,9 +241,6 @@ class SmartNanogridEnv(gym.Env):
 
         self.ALGORITHM_USED = algorithm_used
         self.ENVIRONMENT_MODE = environment_mode
-
-        if self.PV_SYSTEM_AVAILABLE_IN_MODEL:
-            self.available_solar_energy = self.pv_system_manager.get_available_solar_energy()
 
         self.energy_price = self.central_management_system.get_energy_price(self.CURRENT_PRICE_MODEL,
                                                                             self.NUMBER_OF_DAYS_TO_PREDICT,
