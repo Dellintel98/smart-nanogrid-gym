@@ -50,15 +50,13 @@ class CentralManagementSystem:
         available_solar_power = self.get_available_solar_power_at_current_timestep(solar_power, timestep)
 
         total_power = total_charging_power + total_discharging_power
-        grid_power, battery_penalty = self.calculate_grid_power(total_power, available_solar_power, battery_action,
-                                                                time_interval)
+        grid_power = self.calculate_grid_power(total_power, available_solar_power, battery_action, time_interval)
         grid_energy = grid_power * time_interval
 
         energy_price = self.accountant.get_energy_price_at_time_t(timestep)
         self.grid_energy_cost = self.accountant.calculate_grid_energy_cost(grid_energy, energy_price)
 
         self.penaliser.calculate_insufficiently_charged_penalty(departing_vehicles, soc, timestep)
-        # Todo: Feat: Add Penaliser class to include all penalty calculations
 
         total_penalty = self.penaliser.get_total_penalty()
         self.total_cost = self.accountant.calculate_total_cost(additional_cost=total_penalty)

@@ -17,13 +17,16 @@ class Penaliser:
         penalty = (uncharged_capacity * 2) ** 2
         return penalty
 
-    def penalise_battery_charging(self):
-        pass
+    def penalise_battery_charging(self, positive_battery_action):
+        if positive_battery_action < 0:
+            self.battery_penalty = -positive_battery_action
+        else:
+            self.battery_penalty = 0
+            # Todo: Feat: Add battery_penalty = battery_action or different penalising strategy
 
-    def penalise_battery_discharging(self, battery_action):
-        # Todo: Feat: Add penalty for positive action when trying to discharge battery
-        if battery_action > 0:
-            self.battery_penalty = battery_action
+    def penalise_battery_discharging(self, negative_battery_action):
+        if negative_battery_action > 0:
+            self.battery_penalty = negative_battery_action
         else:
             self.battery_penalty = 0
             # Todo: Feat: Add battery_penalty = battery_action or different penalising strategy
