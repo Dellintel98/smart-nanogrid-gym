@@ -4,6 +4,9 @@ class Penaliser:
         self.battery_penalty = 0
         self.total_penalty = 0
 
+    def get_insufficiently_charged_vehicles_penalty(self):
+        return self.insufficiently_charged_vehicles_penalty
+
     def calculate_insufficiently_charged_penalty(self, departing_vehicles, soc, timestep):
         penalties_per_departing_vehicle = []
         for vehicle in range(len(departing_vehicles)):

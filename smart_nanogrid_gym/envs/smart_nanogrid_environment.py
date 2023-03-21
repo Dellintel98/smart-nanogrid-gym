@@ -52,7 +52,6 @@ class SmartNanogridEnv(gym.Env):
         self.timestep = None
         self.info = None
 
-        self.solar_radiation = None
         self.available_solar_energy = None
         self.energy_price = None
         self.grid_energy_per_timestep, self.solar_energy_utilization_per_timestep = None, None
@@ -137,23 +136,22 @@ class SmartNanogridEnv(gym.Env):
 
         max_price = self.energy_price.max()
         if self.PV_SYSTEM_AVAILABLE_IN_MODEL:
-            max_radiation = self.solar_radiation.max()
-            normalized_disturbances_observation_at_current_timestep = np.array([
-                self.solar_radiation[0, self.timestep] / max_radiation,
-                self.energy_price[0, self.timestep] / max_price
-            ])
+            solar_radiation = self.pv_system_manager.get_normalized_solar_radiation_at_timestep_t(self.timestep)
+            energy_price = self.energy_price[0, self.timestep] / max_price
 
-            normalized_predictions = np.concatenate((
-                np.array([self.solar_radiation[0, min_timesteps_ahead:max_timesteps_ahead] / max_radiation]),
-                np.array([self.energy_price[0, min_timesteps_ahead:max_timesteps_ahead] / max_price])),
-                axis=None
-            )
+            radiation_predictions = self.pv_system_manager.get_normalized_solar_predictions_in_range(min_timesteps_ahead,
+                                                                                                     max_timesteps_ahead)
+            price_predictions = self.energy_price[0, min_timesteps_ahead:max_timesteps_ahead] / max_price
+
+            normalized_disturbances_observation_at_current_timestep = np.array([solar_radiation, energy_price])
+            normalized_predictions = np.concatenate((np.array([radiation_predictions]), np.array([price_predictions])),
+                                                    axis=None)
         else:
-            normalized_disturbances_observation_at_current_timestep = np.array([
-                self.energy_price[0, self.timestep] / max_price
-            ])
+            energy_price = self.energy_price[0, self.timestep] / max_price
+            price_predictions = self.energy_price[0, min_timesteps_ahead:max_timesteps_ahead] / max_price
 
-            normalized_predictions = np.array([self.energy_price[0, min_timesteps_ahead:max_timesteps_ahead] / max_price])
+            normalized_disturbances_observation_at_current_timestep = np.array([energy_price])
+            normalized_predictions = np.array([price_predictions])
 
         departures_array = np.array(departure_times)
         normalized_departures = departures_array / 24
@@ -246,7 +244,6 @@ class SmartNanogridEnv(gym.Env):
         self.ENVIRONMENT_MODE = environment_mode
 
         if self.PV_SYSTEM_AVAILABLE_IN_MODEL:
-            self.solar_radiation = self.pv_system_manager.get_solar_radiation()
             self.available_solar_energy = self.pv_system_manager.get_available_solar_energy()
 
         self.energy_price = self.central_management_system.get_energy_price(self.CURRENT_PRICE_MODEL,

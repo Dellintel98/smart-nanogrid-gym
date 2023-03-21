@@ -8,8 +8,6 @@ from smart_nanogrid_gym.utils.penaliser import Penaliser
 class CentralManagementSystem:
     def __init__(self, battery_system_available_in_model, pv_system_available_in_model, vehicle_to_everything):
         # To-do: Add building_demand, building_in_nanogrid as init arguments
-        self.total_cost = 0
-        self.grid_energy_cost = 0
         self.battery_system = self.initialise_battery_system(battery_system_available_in_model)
         self.pv_system_available = pv_system_available_in_model
         self.vehicle_to_everything = vehicle_to_everything
@@ -54,12 +52,12 @@ class CentralManagementSystem:
         grid_energy = grid_power * time_interval
 
         energy_price = self.accountant.get_energy_price_at_time_t(timestep)
-        self.grid_energy_cost = self.accountant.calculate_grid_energy_cost(grid_energy, energy_price)
+        grid_energy_cost = self.accountant.calculate_grid_energy_cost(grid_energy, energy_price)
 
         self.penaliser.calculate_insufficiently_charged_penalty(departing_vehicles, soc, timestep)
 
         total_penalty = self.penaliser.get_total_penalty()
-        self.total_cost = self.accountant.calculate_total_cost(additional_cost=total_penalty)
+        total_cost = self.accountant.calculate_total_cost(additional_cost=total_penalty)
 
         if self.battery_system:
             battery_soc = self.battery_system.current_capacity
@@ -67,13 +65,13 @@ class CentralManagementSystem:
             battery_soc = 0
 
         return {
-            'Total cost': self.total_cost,
+            'Total cost': total_cost,
             'Grid power': grid_power,
             'Grid energy': grid_energy,
             'Utilized solar energy': available_solar_power,
-            'Insufficiently charged vehicles penalty': insufficiently_charged_vehicles_penalty,
+            'Insufficiently charged vehicles penalty': self.penaliser.get_insufficiently_charged_vehicles_penalty(),
             'Battery state of charge': battery_soc,
-            'Grid energy cost': self.grid_energy_cost
+            'Grid energy cost': grid_energy_cost
         }
 
     def get_available_solar_power_at_current_timestep(self, solar_power, current_timestep):
