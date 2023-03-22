@@ -8,6 +8,7 @@ from numpy import ndarray
 class ElectricVehicle:
     battery_capacity: int
     current_capacity: float
+    requested_end_capacity: float
     charging_efficiency: float
     discharging_efficiency: float
     max_charging_power: int

@@ -7,16 +7,18 @@ class Penaliser:
     def get_insufficiently_charged_vehicles_penalty(self):
         return self.insufficiently_charged_vehicles_penalty
 
-    def calculate_insufficiently_charged_penalty(self, departing_vehicles, soc, timestep):
+    def calculate_insufficiently_charged_penalty(self, departing_vehicles, soc, requested_end_soc, timestep):
         penalties_per_departing_vehicle = []
         for vehicle in range(len(departing_vehicles)):
-            penalty = self.calculate_insufficiently_charged_penalty_per_vehicle(departing_vehicles[vehicle], soc, timestep)
+            penalty = self.calculate_insufficiently_charged_penalty_per_vehicle(departing_vehicles[vehicle], soc,
+                                                                                requested_end_soc, timestep)
             penalties_per_departing_vehicle.append(penalty)
 
         self.insufficiently_charged_vehicles_penalty = sum(penalties_per_departing_vehicle)
 
-    def calculate_insufficiently_charged_penalty_per_vehicle(self, vehicle, soc, timestep):
-        uncharged_capacity = 1 - soc[vehicle, timestep - 1]
+    def calculate_insufficiently_charged_penalty_per_vehicle(self, vehicle, soc, requested_end_soc, timestep):
+        # uncharged_capacity = 1 - soc[vehicle, timestep - 1]
+        uncharged_capacity = requested_end_soc - soc[vehicle, timestep - 1]
         penalty = (uncharged_capacity * 2) ** 2
         return penalty
 

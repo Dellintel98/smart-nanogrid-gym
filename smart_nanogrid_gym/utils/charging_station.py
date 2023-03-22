@@ -24,7 +24,7 @@ class ChargingStation:
 
         self.electric_vehicle_info = ElectricVehicle(battery_capacity=40, current_capacity=0, charging_efficiency=0.95,
                                                      discharging_efficiency=0.95, max_charging_power=22,
-                                                     max_discharging_power=22)
+                                                     max_discharging_power=22, requested_end_capacity=0.8)
         self.generated_initial_values = {}
 
     def simulate(self, current_timestep, time_interval):
