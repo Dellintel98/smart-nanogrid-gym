@@ -19,7 +19,6 @@ from ..utils.config import data_files_directory_path, solvers_files_directory_pa
 # Todo: Feat: Add penalty for discharging vehicles (v2v) if it happens except for steps in which some other vehicle is
 #             departing or plans to depart in next n steps
 # Todo: Feat: Add possibility to load model specifications from json or csv..., e.g. load pricing model for energy
-# Todo: Feat: Change request for charging from default 100% to +/-5% from per EV requested end state of charge
 
 # Todo: Train models in DDPG and PPO for these cases: a) basic, only battery, only PV, battery and PV, only v2x,
 #       only v2g, only v2v, v2v and battery, v2v and PV, v2g and battery, v2g and PV, v2v and battery and PV,
@@ -174,7 +173,7 @@ class SmartNanogridEnv(gym.Env):
             available_solar_energy = []
 
         prediction_results = {
-            'SOC': self.central_management_system.charging_station.vehicle_state_of_charge,
+            'SOC': self.central_management_system.charging_station.get_vehicles_state_of_charge(),
             'Grid_power': self.grid_power_per_timestep,
             'Grid_energy': self.grid_energy_per_timestep,
             'Utilized_solar_energy': self.solar_energy_utilization_per_timestep,

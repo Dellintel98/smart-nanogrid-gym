@@ -1,7 +1,7 @@
 import json
 import time
 
-from numpy import random, zeros, asarray, ndarray, array
+from numpy import random, zeros, asarray, ndarray, array, concatenate, vstack, newaxis
 from scipy.io import loadmat, savemat
 
 from smart_nanogrid_gym.utils.charger import Charger
@@ -82,8 +82,8 @@ class ChargingStation:
 
     def extract_current_state_of_charge_per_vehicle(self, timestep):
         self.vehicle_state_of_charge_at_current_timestep.clear()
-        for charger in range(self.NUMBER_OF_CHARGERS):
-            self.vehicle_state_of_charge_at_current_timestep.append(self.vehicle_state_of_charge[charger, timestep])
+        for charger in self.chargers:
+            self.vehicle_state_of_charge_at_current_timestep.append(charger.vehicle_state_of_charge[timestep])
 
     def load_initial_values(self):
         self.clear_initialisation_variables()
@@ -123,14 +123,18 @@ class ChargingStation:
             'SOC': self.vehicle_state_of_charge,
             'Arrivals': arrivals_array,
             'Departures': departures_array,
-            'Charger_occupancy': self.charger_occupancy
+            'Charger_occupancy': self.charger_occupancy,
+            # 'Vehicle_capacities': self.vehicle_capacities,
+            # 'Requested_SOC': self.requested_vehicle_state_of_charge
         } if initial_vehicle_presence_generated else {}
 
         generated_initial_values_json = {
             'SOC': self.vehicle_state_of_charge.tolist(),
             'Arrivals': self.arrivals,
             'Departures': self.departures,
-            'Charger_occupancy': self.charger_occupancy.tolist()
+            'Charger_occupancy': self.charger_occupancy.tolist(),
+            # 'Vehicle_capacities': self.vehicle_capacities.tolist(),
+            # 'Requested_SOC': self.requested_vehicle_state_of_charge.tolist()
         } if initial_vehicle_presence_generated else {}
 
         self.generated_initial_values = generated_initial_values
@@ -216,3 +220,7 @@ class ChargingStation:
         total_charging_power = charger_power_values[charger_power_values > 0].sum()
 
         return total_charging_power, total_discharging_power
+
+    def get_vehicles_state_of_charge(self):
+        self.vehicle_state_of_charge = vstack([charger.vehicle_state_of_charge for charger in self.chargers])
+        return self.vehicle_state_of_charge

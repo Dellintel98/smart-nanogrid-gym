@@ -12,21 +12,21 @@ class Charger:
         self.vehicle_state_of_charge: array = zeros(25)
         self.occupancy: array = zeros(25)
         self.connected_electric_vehicle = ElectricVehicle(battery_capacity=40,
-                                                          current_capacity=0,
+                                                          current_capacity=0, requested_end_capacity=0.8,
                                                           charging_efficiency=0.95, discharging_efficiency=0.95,
                                                           max_charging_power=22, max_discharging_power=22)
 
-    def connect_vehicle(self, hour):
-        self.connected_electric_vehicle = ElectricVehicle(battery_capacity=40,
-                                                          current_capacity=self.vehicle_state_of_charge[hour],
-                                                          charging_efficiency=0.95, discharging_efficiency=0.95,
-                                                          max_charging_power=22, max_discharging_power=22)
-        self.occupied = True
+    # def connect_vehicle(self, hour):
+    #     self.connected_electric_vehicle = ElectricVehicle(battery_capacity=40, requested_end_capacity=0.8,
+    #                                                       current_capacity=self.vehicle_state_of_charge[hour],
+    #                                                       charging_efficiency=0.95, discharging_efficiency=0.95,
+    #                                                       max_charging_power=22, max_discharging_power=22)
+    #     self.occupied = True
 
-    def disconnect_vehicle(self):
-        # save data about departed vehicle or return it to be saved
-        self.connected_electric_vehicle = None
-        self.occupied = False
+    # def disconnect_vehicle(self):
+    #     # save data about departed vehicle or return it to be saved
+    #     self.connected_electric_vehicle = None
+    #     self.occupied = False
 
     def charge_or_discharge_vehicle(self, action, timestep, time_interval):
         if action >= 0:
