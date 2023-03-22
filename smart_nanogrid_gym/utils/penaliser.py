@@ -19,7 +19,15 @@ class Penaliser:
     def calculate_insufficiently_charged_penalty_per_vehicle(self, vehicle, soc, requested_end_soc, timestep):
         # uncharged_capacity = 1 - soc[vehicle, timestep - 1]
         uncharged_capacity = requested_end_soc - soc[vehicle, timestep - 1]
-        penalty = (uncharged_capacity * 2) ** 2
+        charging_breathing_space = 0.05 * requested_end_soc
+
+        if -charging_breathing_space <= uncharged_capacity <= charging_breathing_space:
+            penalty = 0
+        elif uncharged_capacity < -charging_breathing_space:
+            penalty = (uncharged_capacity * 2)
+        else:
+            penalty = (uncharged_capacity * 2) ** 2
+
         return penalty
 
     def penalise_battery_charging(self, positive_battery_action):
