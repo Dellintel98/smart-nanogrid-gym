@@ -11,6 +11,8 @@ from smart_nanogrid_gym.utils.pv_system_manager import PVSystemManager
 from ..utils.config import data_files_directory_path, solvers_files_directory_path
 
 
+# Todo: Feat: Set possibility of using different filetypes for saving and loading only for predictions
+
 # Todo: Feat: Add stohasticity in vehicle departures
 # Todo: Feat: Add model training visualisation using pygame
 # Todo: Feat: Add possibility for Electric Vehicles to have different battery capacities
@@ -133,7 +135,7 @@ class SmartNanogridEnv(gym.Env):
             normalized_disturbances_observation_at_current_timestep = np.array([results['energy_price']])
             normalized_predictions = np.array([results['price_predictions']])
 
-        departures_array = np.array(results['departure_times'])
+        departures_array = np.array(results['departures'])
         normalized_departures = departures_array / 24
 
         if self.BATTERY_SYSTEM_AVAILABLE_IN_MODEL:
@@ -182,7 +184,8 @@ class SmartNanogridEnv(gym.Env):
             'Battery_state_of_charge': self.battery_per_timestep,
             'Grid_energy_cost': self.grid_energy_cost_per_timestep
         }
-        savemat(data_files_directory_path + '\\prediction_results.mat', {'Prediction_results': prediction_results})
+        # Todo: Change mat to excel
+        savemat(data_files_directory_path + '\\last_prediction_results.mat', {'Prediction_results': prediction_results})
 
         if self.BATTERY_SYSTEM_AVAILABLE_IN_MODEL and self.PV_SYSTEM_AVAILABLE_IN_MODEL and self.VEHICLE_TO_EVERYTHING:
             model_variant_name = 'v2x-b-pv'
@@ -207,8 +210,8 @@ class SmartNanogridEnv(gym.Env):
         file_name = f'{self.ALGORITHM_USED}-{model_variant_name}-prediction_results.mat'
         savemat(saving_directory_path + file_name, {'Prediction_results': prediction_results})
 
-        self.central_management_system.charging_station.save_initial_values(saving_directory_path,
-                                                                            filename_prefix=f'{self.ALGORITHM_USED}-{model_variant_name}')
+        self.central_management_system.charging_station.save_initial_values_to_mat_file(saving_directory_path,
+                                                                                        filename_prefix=f'{self.ALGORITHM_USED}-{model_variant_name}')
 
     def reset(self, generate_new_initial_values=True, algorithm_used='', environment_mode='', **kwargs):
         self.timestep = 0

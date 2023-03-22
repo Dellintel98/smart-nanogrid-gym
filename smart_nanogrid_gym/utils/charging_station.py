@@ -12,10 +12,10 @@ from smart_nanogrid_gym.utils.electric_vehicle import ElectricVehicle
 class ChargingStation:
     def __init__(self, number_of_chargers, time_interval):
         self.NUMBER_OF_CHARGERS = number_of_chargers
-        array_columns = int(25 / time_interval)
+        self.array_columns = int(25 / time_interval)
         self.chargers = [Charger() for _ in range(self.NUMBER_OF_CHARGERS)]
-        self.vehicle_state_of_charge = zeros([self.NUMBER_OF_CHARGERS, array_columns])
-        self.charger_occupancy = zeros([self.NUMBER_OF_CHARGERS, array_columns])
+        self.vehicle_state_of_charge = zeros([self.NUMBER_OF_CHARGERS, self.array_columns])
+        self.charger_occupancy = zeros([self.NUMBER_OF_CHARGERS, self.array_columns])
         self.arrivals = []
         self.departures = []
         self.departing_vehicles = []
@@ -88,36 +88,19 @@ class ChargingStation:
     def load_initial_values(self):
         self.clear_initialisation_variables()
 
-        initial_values = loadmat(data_files_directory_path + '\\initial_values.mat')
+        # initial_values = loadmat(data_files_directory_path + '\\initial_values.mat')
         with open(data_files_directory_path + "\\initial_values.json", "r") as fp:
             initials = json.load(fp)
-            a = 2
 
-        arrival_times = initial_values['Arrivals']
-        departure_times = initial_values['Departures']
-
-        self.vehicle_state_of_charge = initial_values['SOC']
-        self.charger_occupancy = initial_values['Charger_occupancy']
+        self.arrivals = initials['Arrivals']
+        self.departures = initials['Departures']
+        self.vehicle_state_of_charge = array(initials['SOC'])
+        self.charger_occupancy = array(initials['Charger_occupancy'])
 
         for charger in range(self.NUMBER_OF_CHARGERS):
-            if arrival_times.shape == (1, self.NUMBER_OF_CHARGERS):
-                arrivals = arrival_times[0][charger][0]
-                departures = departure_times[0][charger][0]
-            elif arrival_times.shape == (self.NUMBER_OF_CHARGERS, 3):
-                arrivals = arrival_times[charger]
-                departures = departure_times[charger]
-            else:
-                raise Exception("Initial values loaded from initial_values.mat have wrong shape.")
-
-            if isinstance(departures[0], ndarray):
-                departures = array(departures.tolist()).flatten()
-                arrivals = array(arrivals.tolist()).flatten()
-
-            self.arrivals.append(arrivals.tolist())
-            self.departures.append(departures.tolist())
             self.chargers[charger].vehicle_arrivals = self.arrivals[charger]
             self.chargers[charger].vehicle_state_of_charge = self.vehicle_state_of_charge[charger, :]
-            self.chargers[charger].occupancy = initial_values['Charger_occupancy'][charger, :]
+            self.chargers[charger].occupancy = self.charger_occupancy[charger, :]
 
     def clear_initialisation_variables(self):
         try:
@@ -156,10 +139,13 @@ class ChargingStation:
         with open(data_files_directory_path + "\\initial_values.json", "w") as fp:
             json.dump(generated_initial_values_json, fp, indent=4)
 
+        # Save also as .mat file for easier inspection
+        # Todo: Change mat to excel
         savemat(data_files_directory_path + '\\initial_values.mat', generated_initial_values)
 
-    def save_initial_values(self, path, filename_prefix):
-        savemat(path + f'\\{filename_prefix}-initial_values.mat', self.generated_initial_values)
+    def save_initial_values_to_mat_file(self, path, filename_prefix):
+        prefix = f'\\{filename_prefix}-' if filename_prefix else ''
+        savemat(path + f'\\{prefix}initial_values.mat', self.generated_initial_values)
 
     def generate_initial_vehicle_presence(self, initial_variables_cleared, time_interval):
         if initial_variables_cleared:

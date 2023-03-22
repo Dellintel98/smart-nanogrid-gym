@@ -127,7 +127,7 @@ class CentralManagementSystem:
         remaining_power_demand = power_demand - available_solar_power
 
         if remaining_power_demand == 0:
-            return 0, 0
+            return 0
         elif remaining_power_demand > 0:
             power_from_grid = self.calculate_amount_of_power_supplied_from_grid(remaining_power_demand, battery_action)
             return power_from_grid
