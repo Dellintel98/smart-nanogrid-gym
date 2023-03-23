@@ -27,14 +27,13 @@ from ..utils.config import data_files_directory_path, solvers_files_directory_pa
 
 class SmartNanogridEnv(gym.Env):
     def __init__(self, price_model=0, pv_system_available_in_model=True, battery_system_available_in_model=True,
-                 vehicle_to_everything=False, algorithm_used='', environment_mode=''):
+                 vehicle_to_everything=False, algorithm_used='', environment_mode='', time_interval=''):
         self.ALGORITHM_USED = algorithm_used
         self.ENVIRONMENT_MODE = environment_mode
         # Add building_in_nanogrid=False, building_demand=False as init arguments
         self.NUMBER_OF_CHARGERS = 8
         self.NUMBER_OF_DAYS_TO_PREDICT = 1
-        # TODO: Add method for setting time_interval by keyword argument from ['1h', '2h'...-> '?h'; '15min'...->'?min']
-        self.TIME_INTERVAL = 1
+        self.TIME_INTERVAL = self.set_time_interval(time_interval)
         self.NUMBER_OF_HOURS_AHEAD = 3
         self.CURRENT_PRICE_MODEL = price_model
         self.PV_SYSTEM_AVAILABLE_IN_MODEL = pv_system_available_in_model
@@ -92,6 +91,21 @@ class SmartNanogridEnv(gym.Env):
 
         # Todo: Add look-ahead action_space for looking at agents planned actions to see will departing vehicles be
         #       charged enough based on current action, and penalize wrong future actions
+
+    def set_time_interval(self, requested_time_interval):
+        # Method for setting time_interval by keyword argument from ['1h', '2h'...-> '?h'; '15min'...->'?min']
+        # Todo: Feat: Add security check for value provided as an argument
+        if requested_time_interval:
+            if 'h' in requested_time_interval:
+                time_interval = int(requested_time_interval.replace('h', ''))
+                return time_interval
+            elif 'min' in requested_time_interval:
+                time_interval = int(requested_time_interval.replace('min', ''))
+                return time_interval
+            else:
+                raise ValueError('Wrong time interval was provided')
+        else:
+            return int(1)
 
     def step(self, actions):
         results = self.central_management_system.simulate(self.timestep, actions)

@@ -15,9 +15,9 @@ class ChargingStation:
         self.chargers = [Charger() for _ in range(self.NUMBER_OF_CHARGERS)]
         self.arrivals = []
         self.departures = []
-        self.departing_vehicles = []
         self.departure_times = []
         self.vehicle_state_of_charge_at_current_timestep = []
+        self._departing_vehicles = []
 
         self.electric_vehicle_info = ElectricVehicle(battery_capacity=40, current_capacity=0, charging_efficiency=0.95,
                                                      discharging_efficiency=0.95, max_charging_power=22,
@@ -35,13 +35,13 @@ class ChargingStation:
         if timestep >= (24 / time_interval):
             return []
 
-        self.departing_vehicles.clear()
+        self._departing_vehicles.clear()
         for index, charger in enumerate(self.chargers):
             charger_occupied = charger.occupancy[timestep]
             vehicle_departing = self.check_is_vehicle_departing(self.departures[index], timestep)
 
             if charger_occupied and vehicle_departing:
-                self.departing_vehicles.append(index)
+                self._departing_vehicles.append(index)
 
     def check_is_vehicle_departing(self, vehicle_departure, timestep):
         if timestep + 1 in vehicle_departure:
@@ -218,3 +218,6 @@ class ChargingStation:
     def get_occupancy_for_all_chargers(self):
         occupancy = vstack([charger.occupancy for charger in self.chargers])
         return occupancy
+
+    def get_all_departing_vehicles(self):
+        return self._departing_vehicles

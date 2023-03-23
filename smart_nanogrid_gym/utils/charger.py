@@ -12,7 +12,7 @@ class Charger:
         self.vehicle_state_of_charge: array = zeros(25)
         self.occupancy: array = zeros(25)
         self.connected_electric_vehicle = ElectricVehicle(battery_capacity=40,
-                                                          current_capacity=0, requested_end_capacity=0.8,
+                                                          current_capacity=0, requested_end_capacity=1.0,
                                                           charging_efficiency=0.95, discharging_efficiency=0.95,
                                                           max_charging_power=22, max_discharging_power=22)
 

@@ -106,7 +106,7 @@ def simulate_central_management_system(self, actions):
     charger_occupancy = self.initial_simulation_values['Charger occupancy']
     arrivals = self.initial_simulation_values['Arrivals']
 
-    departing_vehicles = self.departing_vehicles
+    departing_vehicles = self._departing_vehicles
     soc = self.ev_state_of_charge
 
     charger_power_values = np.zeros(self.NUMBER_OF_CHARGERS)

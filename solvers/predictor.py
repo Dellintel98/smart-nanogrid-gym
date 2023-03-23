@@ -111,7 +111,7 @@ plt.legend([name for name in names])
 plt.grid()
 
 file_time = time.time()
-# plt.savefig(f"saved_figures\\figure_final_rewards_{int(file_time)}.png")
+plt.savefig(f"saved_figures\\prediction_figure_final_rewards_{int(file_time)}.png")
 # plt.savefig(f"saved_figures\\figure_final_rewards_{int(file_time)}.png", dpi=300)
 
 plt.show()

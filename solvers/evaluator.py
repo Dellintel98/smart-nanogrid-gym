@@ -73,8 +73,8 @@ for name in names:
                          f"during model training, e.g. DDPG or PPO or ddpg or Ppo, etc. "
                          f"Currently accepted algorithms are: DDPG and PPO!")
 
-# episodes = 150
-episodes = 5
+episodes = 100
+# episodes = 5
 
 final_rewards = {}
 mean_rewards = {}
@@ -118,7 +118,7 @@ plt.legend([name for name in names])
 plt.grid()
 
 file_time = time.time()
-# plt.savefig(f"saved_figures\\figure_final_rewards_{int(file_time)}.png")
+plt.savefig(f"saved_figures\\evaluation_figure_final_rewards_{int(file_time)}.png")
 # plt.savefig(f"saved_figures\\figure_final_rewards_{int(file_time)}.png", dpi=300)
 
 plt.show()

@@ -101,7 +101,7 @@ class CentralManagementSystem:
         grid_energy_cost = self.accountant.calculate_grid_energy_cost(grid_energy, energy_price)
 
         requested_end_soc = self.charging_station.electric_vehicle_info.requested_end_capacity
-        self.penaliser.calculate_insufficiently_charged_penalty(self.charging_station.departing_vehicles,
+        self.penaliser.calculate_insufficiently_charged_penalty(self.charging_station.get_all_departing_vehicles(),
                                                                 self.charging_station.get_vehicles_state_of_charge(),
                                                                 requested_end_soc, timestep)
 
