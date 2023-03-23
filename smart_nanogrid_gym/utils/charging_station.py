@@ -13,7 +13,6 @@ class ChargingStation:
         self.NUMBER_OF_CHARGERS = number_of_chargers
         self.array_columns = int(25 / time_interval)
         self.chargers = [Charger() for _ in range(self.NUMBER_OF_CHARGERS)]
-        self.charger_occupancy = zeros([self.NUMBER_OF_CHARGERS, self.array_columns])
         self.arrivals = []
         self.departures = []
         self.departing_vehicles = []
@@ -86,20 +85,19 @@ class ChargingStation:
 
         self.arrivals = initials['Arrivals']
         self.departures = initials['Departures']
-        self.charger_occupancy = array(initials['Charger_occupancy'])
 
         vehicle_state_of_charge = array(initials['SOC'])
+        charger_occupancy = array(initials['Charger_occupancy'])
 
         for index, charger in enumerate(self.chargers):
             charger.vehicle_arrivals = self.arrivals[index]
             charger.vehicle_state_of_charge = vehicle_state_of_charge[index, :]
-            charger.occupancy = self.charger_occupancy[index, :]
+            charger.occupancy = charger_occupancy[index, :]
 
     def clear_initialisation_variables(self):
         try:
             self.arrivals.clear()
             self.departures.clear()
-            self.charger_occupancy.fill(0)
             return True
         except ValueError:
             return False
@@ -112,12 +110,13 @@ class ChargingStation:
         departures_array = asarray(self.departures, dtype=object)
 
         vehicles_state_of_charge = self.get_vehicles_state_of_charge()
+        charger_occupancy = self.get_occupancy_for_all_chargers()
 
         generated_initial_values = {
             'SOC': vehicles_state_of_charge,
             'Arrivals': arrivals_array,
             'Departures': departures_array,
-            'Charger_occupancy': self.charger_occupancy,
+            'Charger_occupancy': charger_occupancy,
             # 'Vehicle_capacities': self.vehicle_capacities,
             # 'Requested_SOC': self.requested_vehicle_state_of_charge
         } if initial_vehicle_presence_generated else {}
@@ -126,7 +125,7 @@ class ChargingStation:
             'SOC': vehicles_state_of_charge.tolist(),
             'Arrivals': self.arrivals,
             'Departures': self.departures,
-            'Charger_occupancy': self.charger_occupancy.tolist(),
+            'Charger_occupancy': charger_occupancy.tolist(),
             # 'Vehicle_capacities': self.vehicle_capacities.tolist(),
             # 'Requested_SOC': self.requested_vehicle_state_of_charge.tolist()
         } if initial_vehicle_presence_generated else {}
@@ -147,7 +146,7 @@ class ChargingStation:
 
     def generate_initial_vehicle_presence(self, initial_variables_cleared, time_interval):
         if initial_variables_cleared:
-            for charger in range(self.NUMBER_OF_CHARGERS):
+            for charger in self.chargers:
                 self.generate_initial_vehicle_presence_per_charger(charger, time_interval)
             return True
         return False
@@ -173,20 +172,18 @@ class ChargingStation:
                     vehicle_departures.append(current_departure_time)
 
             if vehicle_present and timestep < current_departure_time:
-                self.charger_occupancy[charger, timestep] = 1
-                self.chargers[charger].occupancy[timestep] = 1
+                charger.occupancy[timestep] = 1
             else:
                 vehicle_present = False
-                self.charger_occupancy[charger, timestep] = 0
-                self.chargers[charger].occupancy[timestep] = 0
+                charger.occupancy[timestep] = 0
 
         self.arrivals.append(vehicle_arrivals)
         self.departures.append(vehicle_departures)
-        self.chargers[charger].vehicle_arrivals.extend(vehicle_arrivals)
+        charger.vehicle_arrivals.extend(vehicle_arrivals)
 
     def generate_random_arrival_vehicle_state_of_charge(self, charger, timestep):
         random_state_of_charge = random.randint(10, 90) / 100
-        self.chargers[charger].vehicle_state_of_charge[timestep] = random_state_of_charge
+        charger.vehicle_state_of_charge[timestep] = random_state_of_charge
 
     def generate_random_vehicle_departure_time(self, timestep, time_interval, total_timesteps):
         max_charging_time = timestep + int(10 / time_interval)
@@ -217,3 +214,7 @@ class ChargingStation:
     def get_vehicles_state_of_charge(self):
         vehicle_state_of_charge = vstack([charger.vehicle_state_of_charge for charger in self.chargers])
         return vehicle_state_of_charge
+
+    def get_occupancy_for_all_chargers(self):
+        occupancy = vstack([charger.occupancy for charger in self.chargers])
+        return occupancy

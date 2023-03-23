@@ -19,6 +19,7 @@ from ..utils.config import data_files_directory_path, solvers_files_directory_pa
 # Todo: Feat: Add penalty for discharging vehicles (v2v) if it happens except for steps in which some other vehicle is
 #             departing or plans to depart in next n steps
 # Todo: Feat: Add possibility to load model specifications from json or csv..., e.g. load pricing model for energy
+# Todo: Feat: Add possibility for using pv system data from the paper I'm writing
 
 # Todo: Train models in DDPG and PPO for these cases: a) basic, only battery, only PV, battery and PV, only v2x,
 #       only v2g, only v2v, v2v and battery, v2v and PV, v2g and battery, v2g and PV, v2v and battery and PV,
