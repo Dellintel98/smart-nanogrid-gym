@@ -37,18 +37,12 @@ class ChargingStation:
             return []
 
         self.departing_vehicles.clear()
-        for charger in range(self.NUMBER_OF_CHARGERS):
-            charger_occupied = self.check_charger_occupancy(self.charger_occupancy[charger, timestep])
-            vehicle_departing = self.check_is_vehicle_departing(self.departures[charger], timestep)
+        for index, charger in enumerate(self.chargers):
+            charger_occupied = charger.occupancy[timestep]
+            vehicle_departing = self.check_is_vehicle_departing(self.departures[index], timestep)
 
             if charger_occupied and vehicle_departing:
-                self.departing_vehicles.append(charger)
-
-    def check_charger_occupancy(self, charger_occupancy):
-        if charger_occupancy == 1:
-            return True
-        else:
-            return False
+                self.departing_vehicles.append(index)
 
     def check_is_vehicle_departing(self, vehicle_departure, timestep):
         if timestep + 1 in vehicle_departure:
@@ -58,11 +52,11 @@ class ChargingStation:
 
     def calculate_departure_times(self, timestep):
         self.departure_times.clear()
-        for charger in range(self.NUMBER_OF_CHARGERS):
-            charger_occupied = self.check_charger_occupancy(self.charger_occupancy[charger, timestep])
+        for index, charger in enumerate(self.chargers):
+            charger_occupied = charger.occupancy[timestep]
 
             if charger_occupied:
-                departure_time = self.calculate_next_departure_time(self.departures[charger], timestep)
+                departure_time = self.calculate_next_departure_time(self.departures[index], timestep)
                 if isinstance(departure_time, ndarray):
                     breakpoint()
                 self.departure_times.append(departure_time)
@@ -70,9 +64,9 @@ class ChargingStation:
                 self.departure_times.append(0)
 
     def calculate_next_departure_time(self, charger_departures, timestep):
-        for vehicle in range(len(charger_departures)):
-            if timestep <= charger_departures[vehicle]:
-                a = charger_departures[vehicle] - timestep
+        for departure_time in charger_departures:
+            if timestep <= departure_time:
+                a = departure_time - timestep
                 if isinstance(a, ndarray):
                     breakpoint()
                 return a
@@ -96,10 +90,10 @@ class ChargingStation:
 
         vehicle_state_of_charge = array(initials['SOC'])
 
-        for charger in range(self.NUMBER_OF_CHARGERS):
-            self.chargers[charger].vehicle_arrivals = self.arrivals[charger]
-            self.chargers[charger].vehicle_state_of_charge = vehicle_state_of_charge[charger, :]
-            self.chargers[charger].occupancy = self.charger_occupancy[charger, :]
+        for index, charger in enumerate(self.chargers):
+            charger.vehicle_arrivals = self.arrivals[index]
+            charger.vehicle_state_of_charge = vehicle_state_of_charge[index, :]
+            charger.occupancy = self.charger_occupancy[index, :]
 
     def clear_initialisation_variables(self):
         try:

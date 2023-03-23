@@ -102,7 +102,7 @@ class CentralManagementSystem:
 
         requested_end_soc = self.charging_station.electric_vehicle_info.requested_end_capacity
         self.penaliser.calculate_insufficiently_charged_penalty(self.charging_station.departing_vehicles,
-                                                                self.charging_station.vehicle_state_of_charge,
+                                                                self.charging_station.get_vehicles_state_of_charge(),
                                                                 requested_end_soc, timestep)
 
         total_penalty = self.penaliser.get_total_penalty()
