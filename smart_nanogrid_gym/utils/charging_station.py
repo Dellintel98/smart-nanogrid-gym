@@ -1,7 +1,6 @@
 import json
-import time
 
-from numpy import random, zeros, asarray, ndarray, array, concatenate, vstack, newaxis
+from numpy import random, zeros, asarray, ndarray, array, vstack
 from scipy.io import loadmat, savemat
 
 from smart_nanogrid_gym.utils.charger import Charger
@@ -14,7 +13,6 @@ class ChargingStation:
         self.NUMBER_OF_CHARGERS = number_of_chargers
         self.array_columns = int(25 / time_interval)
         self.chargers = [Charger() for _ in range(self.NUMBER_OF_CHARGERS)]
-        self.vehicle_state_of_charge = zeros([self.NUMBER_OF_CHARGERS, self.array_columns])
         self.charger_occupancy = zeros([self.NUMBER_OF_CHARGERS, self.array_columns])
         self.arrivals = []
         self.departures = []
@@ -94,12 +92,13 @@ class ChargingStation:
 
         self.arrivals = initials['Arrivals']
         self.departures = initials['Departures']
-        self.vehicle_state_of_charge = array(initials['SOC'])
         self.charger_occupancy = array(initials['Charger_occupancy'])
+
+        vehicle_state_of_charge = array(initials['SOC'])
 
         for charger in range(self.NUMBER_OF_CHARGERS):
             self.chargers[charger].vehicle_arrivals = self.arrivals[charger]
-            self.chargers[charger].vehicle_state_of_charge = self.vehicle_state_of_charge[charger, :]
+            self.chargers[charger].vehicle_state_of_charge = vehicle_state_of_charge[charger, :]
             self.chargers[charger].occupancy = self.charger_occupancy[charger, :]
 
     def clear_initialisation_variables(self):
@@ -107,7 +106,6 @@ class ChargingStation:
             self.arrivals.clear()
             self.departures.clear()
             self.charger_occupancy.fill(0)
-            self.vehicle_state_of_charge.fill(0)
             return True
         except ValueError:
             return False
@@ -119,8 +117,10 @@ class ChargingStation:
         arrivals_array = asarray(self.arrivals, dtype=object)
         departures_array = asarray(self.departures, dtype=object)
 
+        vehicles_state_of_charge = self.get_vehicles_state_of_charge()
+
         generated_initial_values = {
-            'SOC': self.vehicle_state_of_charge,
+            'SOC': vehicles_state_of_charge,
             'Arrivals': arrivals_array,
             'Departures': departures_array,
             'Charger_occupancy': self.charger_occupancy,
@@ -129,7 +129,7 @@ class ChargingStation:
         } if initial_vehicle_presence_generated else {}
 
         generated_initial_values_json = {
-            'SOC': self.vehicle_state_of_charge.tolist(),
+            'SOC': vehicles_state_of_charge.tolist(),
             'Arrivals': self.arrivals,
             'Departures': self.departures,
             'Charger_occupancy': self.charger_occupancy.tolist(),
@@ -191,9 +191,8 @@ class ChargingStation:
         self.chargers[charger].vehicle_arrivals.extend(vehicle_arrivals)
 
     def generate_random_arrival_vehicle_state_of_charge(self, charger, timestep):
-        random_integer = random.randint(10, 90)
-        self.vehicle_state_of_charge[charger, timestep] = random_integer / 100
-        self.chargers[charger].vehicle_state_of_charge[timestep] = self.vehicle_state_of_charge[charger, timestep]
+        random_state_of_charge = random.randint(10, 90) / 100
+        self.chargers[charger].vehicle_state_of_charge[timestep] = random_state_of_charge
 
     def generate_random_vehicle_departure_time(self, timestep, time_interval, total_timesteps):
         max_charging_time = timestep + int(10 / time_interval)
@@ -222,5 +221,5 @@ class ChargingStation:
         return total_charging_power, total_discharging_power
 
     def get_vehicles_state_of_charge(self):
-        self.vehicle_state_of_charge = vstack([charger.vehicle_state_of_charge for charger in self.chargers])
-        return self.vehicle_state_of_charge
+        vehicle_state_of_charge = vstack([charger.vehicle_state_of_charge for charger in self.chargers])
+        return vehicle_state_of_charge
