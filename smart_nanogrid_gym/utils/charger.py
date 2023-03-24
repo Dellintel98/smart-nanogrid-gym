@@ -10,7 +10,9 @@ class Charger:
         self.power_value: float = 0.0
         self.vehicle_arrivals: [] = []
         self.vehicle_state_of_charge: array = zeros(25)
+        self.vehicle_capacities: array = zeros(25)
         self.occupancy: array = zeros(25)
+        self.requested_end_state_of_charge = zeros(25)
         self.connected_electric_vehicle = ElectricVehicle(battery_capacity=40,
                                                           current_capacity=0, requested_end_capacity=1.0,
                                                           charging_efficiency=0.95, discharging_efficiency=0.95,
@@ -44,20 +46,20 @@ class Charger:
 
     def calculate_max_charging_power(self, timestep, time_interval):
         if timestep in self.vehicle_arrivals:
-            remaining_uncharged_capacity = 1 - self.vehicle_state_of_charge[timestep]
+            remaining_uncharged_capacity = self.requested_end_state_of_charge[timestep] - self.vehicle_state_of_charge[timestep]
         else:
-            remaining_uncharged_capacity = 1 - self.vehicle_state_of_charge[timestep - 1]
+            remaining_uncharged_capacity = self.requested_end_state_of_charge[timestep - 1] - self.vehicle_state_of_charge[timestep - 1]
 
-        power_left_to_charge = (remaining_uncharged_capacity * self.connected_electric_vehicle.battery_capacity) / time_interval
+        power_left_to_charge = (remaining_uncharged_capacity * self.vehicle_capacities[timestep]) / time_interval
 
-        max_charging_power = min([self.connected_electric_vehicle.max_charging_power, power_left_to_charge])
+        max_charging_power = min([self.connected_electric_vehicle.max_charging_power, power_left_to_charge]) * self.connected_electric_vehicle.charging_efficiency
         return max_charging_power
 
     def calculate_charging_or_discharging_power(self, max_power, action):
         return action * max_power
 
     def calculate_next_vehicle_state_of_charge(self, power_value, timestep, time_interval):
-        state_of_charge_value_change = (power_value * time_interval) / self.connected_electric_vehicle.battery_capacity
+        state_of_charge_value_change = (power_value * time_interval) / self.vehicle_capacities[timestep]
 
         if timestep in self.vehicle_arrivals:
             self.vehicle_state_of_charge[timestep] = self.vehicle_state_of_charge[timestep] + state_of_charge_value_change
@@ -72,11 +74,11 @@ class Charger:
 
     def calculate_max_discharging_power(self, timestep, time_interval):
         if timestep in self.vehicle_arrivals:
-            vehicle_state_of_energy = self.vehicle_state_of_charge[timestep] * self.connected_electric_vehicle.battery_capacity
+            vehicle_state_of_energy = self.vehicle_state_of_charge[timestep] * self.vehicle_capacities[timestep]
         else:
-            vehicle_state_of_energy = self.vehicle_state_of_charge[timestep - 1] * self.connected_electric_vehicle.battery_capacity
+            vehicle_state_of_energy = self.vehicle_state_of_charge[timestep - 1] * self.vehicle_capacities[timestep - 1]
 
         power_left_to_discharge = vehicle_state_of_energy / time_interval
 
-        max_discharging_power = min([self.connected_electric_vehicle.max_discharging_power, power_left_to_discharge])
+        max_discharging_power = min([self.connected_electric_vehicle.max_discharging_power, power_left_to_discharge]) / self.connected_electric_vehicle.discharging_efficiency
         return max_discharging_power

@@ -27,12 +27,15 @@ from ..utils.config import data_files_directory_path, solvers_files_directory_pa
 
 class SmartNanogridEnv(gym.Env):
     def __init__(self, price_model=0, pv_system_available_in_model=True, battery_system_available_in_model=True,
-                 vehicle_to_everything=False, algorithm_used='', environment_mode='', time_interval=''):
+                 vehicle_to_everything=False, enable_different_vehicle_battery_capacities=True, enable_requested_state_of_charge=False,
+                 algorithm_used='', environment_mode='', time_interval=''):
+        # Todo: Feat: Add possibility to specify whether to use same capacity or different ones for vehicle battery
         self.ALGORITHM_USED = algorithm_used
         self.ENVIRONMENT_MODE = environment_mode
         # Add building_in_nanogrid=False, building_demand=False as init arguments
-        self.NUMBER_OF_CHARGERS = 8
+        self.NUMBER_OF_CHARGERS = 4
         self.NUMBER_OF_DAYS_TO_PREDICT = 1
+        self.REQUESTED_TIME_INTERVAL = time_interval
         self.TIME_INTERVAL = self.set_time_interval(time_interval)
         self.NUMBER_OF_HOURS_AHEAD = 3
         self.CURRENT_PRICE_MODEL = price_model
@@ -45,7 +48,9 @@ class SmartNanogridEnv(gym.Env):
                                                                  self.PV_SYSTEM_AVAILABLE_IN_MODEL,
                                                                  self.VEHICLE_TO_EVERYTHING, self.CURRENT_PRICE_MODEL,
                                                                  self.NUMBER_OF_DAYS_TO_PREDICT, self.TIME_INTERVAL,
-                                                                 self.NUMBER_OF_CHARGERS)
+                                                                 self.NUMBER_OF_CHARGERS,
+                                                                 enable_different_vehicle_battery_capacities,
+                                                                 enable_requested_state_of_charge)
 
         self.timestep = None
         self.info = None
@@ -221,11 +226,13 @@ class SmartNanogridEnv(gym.Env):
 
         saving_directory_path = solvers_files_directory_path + '\\RL\\' + file_destination + '\\'
 
-        file_name = f'{self.ALGORITHM_USED}-{model_variant_name}-prediction_results.mat'
+        file_name = f'{self.ALGORITHM_USED}-{model_variant_name}-{self.REQUESTED_TIME_INTERVAL}-prediction_results.mat'
         savemat(saving_directory_path + file_name, {'Prediction_results': prediction_results})
 
         self.central_management_system.charging_station.save_initial_values_to_mat_file(saving_directory_path,
-                                                                                        filename_prefix=f'{self.ALGORITHM_USED}-{model_variant_name}')
+                                                                                        filename_prefix=f'{self.ALGORITHM_USED}-'
+                                                                                                        f'{model_variant_name}-'
+                                                                                                        f'{self.REQUESTED_TIME_INTERVAL}-')
 
     def reset(self, generate_new_initial_values=True, algorithm_used='', environment_mode='', **kwargs):
         self.timestep = 0

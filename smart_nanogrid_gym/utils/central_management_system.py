@@ -9,7 +9,8 @@ from smart_nanogrid_gym.utils.pv_system_manager import PVSystemManager
 
 class CentralManagementSystem:
     def __init__(self, battery_system_available_in_model, pv_system_available_in_model, vehicle_to_everything,
-                 current_price_model, experiment_length_in_days, time_interval, number_of_chargers):
+                 current_price_model, experiment_length_in_days, time_interval, number_of_chargers,
+                 enable_different_vehicle_battery_capacities, enable_requested_state_of_charge):
         # To-do: Add building_demand, building_in_nanogrid as init arguments
         self.TIME_INTERVAL = time_interval
         self.EXPERIMENT_LENGTH_IN_DAYS = experiment_length_in_days
@@ -19,7 +20,7 @@ class CentralManagementSystem:
         self.pv_system_manager = self.initialise_pv_system(pv_system_available_in_model)
 
         self.vehicle_to_everything = vehicle_to_everything
-        self.charging_station = ChargingStation(number_of_chargers, time_interval)
+        self.charging_station = ChargingStation(number_of_chargers, time_interval, enable_different_vehicle_battery_capacities, enable_requested_state_of_charge)
 
         self.accountant = Accountant()
         self.accountant.set_energy_price(current_price_model, experiment_length_in_days, time_interval)
@@ -100,10 +101,10 @@ class CentralManagementSystem:
         energy_price = self.accountant.get_energy_price_at_time_t(timestep)
         grid_energy_cost = self.accountant.calculate_grid_energy_cost(grid_energy, energy_price)
 
-        requested_end_soc = self.charging_station.electric_vehicle_info.requested_end_capacity
         self.penaliser.calculate_insufficiently_charged_penalty(self.charging_station.get_all_departing_vehicles(),
                                                                 self.charging_station.get_vehicles_state_of_charge(),
-                                                                requested_end_soc, timestep)
+                                                                self.charging_station.get_requested_end_state_of_charge_for_all_chargers(),
+                                                                timestep)
 
         total_penalty = self.penaliser.get_total_penalty()
         total_cost = self.accountant.calculate_total_cost(additional_cost=total_penalty)

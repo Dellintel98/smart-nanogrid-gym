@@ -18,8 +18,8 @@ class Penaliser:
 
     def calculate_insufficiently_charged_penalty_per_vehicle(self, vehicle, soc, requested_end_soc, timestep):
         # uncharged_capacity = 1 - soc[vehicle, timestep - 1]
-        uncharged_capacity = requested_end_soc - soc[vehicle, timestep - 1]
-        charging_breathing_space = 0.05 * requested_end_soc
+        uncharged_capacity = requested_end_soc[vehicle, timestep - 1] - soc[vehicle, timestep - 1]
+        charging_breathing_space = 0.05 * requested_end_soc[vehicle, timestep - 1]
 
         if -charging_breathing_space <= uncharged_capacity <= charging_breathing_space:
             penalty = 0

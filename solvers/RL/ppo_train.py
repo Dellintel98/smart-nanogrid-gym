@@ -15,28 +15,32 @@ env_variants = [
         'config': {
             'vehicle_to_everything': False,
             'pv_system_available_in_model': False,
-            'battery_system_available_in_model': False
+            'battery_system_available_in_model': False,
+            'environment_mode': 'training'
         }},
     {
         'variant_name': 'b-pv-',
         'config': {
             'vehicle_to_everything': False,
             'pv_system_available_in_model': True,
-            'battery_system_available_in_model': True
+            'battery_system_available_in_model': True,
+            'environment_mode': 'training'
         }},
     {
         'variant_name': 'v2x-',
         'config': {
             'vehicle_to_everything': True,
             'pv_system_available_in_model': False,
-            'battery_system_available_in_model': False
+            'battery_system_available_in_model': False,
+            'environment_mode': 'training'
         }},
     {
         'variant_name': 'v2x-b-pv-',
         'config': {
             'vehicle_to_everything': True,
             'pv_system_available_in_model': True,
-            'battery_system_available_in_model': True
+            'battery_system_available_in_model': True,
+            'environment_mode': 'training'
         }}
 ]
 current_env = env_variants[3]
