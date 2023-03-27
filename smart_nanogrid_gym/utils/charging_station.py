@@ -41,12 +41,20 @@ class ChargingStation:
         for index, charger in enumerate(self.chargers):
             charger_occupied = charger.occupancy[timestep]
             vehicle_departing = self.check_is_vehicle_departing(self.departures[index], timestep)
+            # vehicle_departing = self.check_is_vehicle_departing_in_next_3_timesteps(self.departures[index], timestep)
+            # vehicle_departing = True
 
             if charger_occupied and vehicle_departing:
                 self._departing_vehicles.append(index)
 
     def check_is_vehicle_departing(self, vehicle_departure, timestep):
         if timestep + 1 in vehicle_departure:
+            return True
+        else:
+            return False
+
+    def check_is_vehicle_departing_in_next_3_timesteps(self, vehicle_departure, timestep):
+        if (timestep + 1 or timestep + 2 or timestep + 3) in vehicle_departure:
             return True
         else:
             return False
@@ -102,6 +110,12 @@ class ChargingStation:
         try:
             self.arrivals.clear()
             self.departures.clear()
+            for charger in self.chargers:
+                charger.vehicle_arrivals.clear()
+                charger.vehicle_state_of_charge.fill(0)
+                charger.vehicle_capacities.fill(0)
+                charger.occupancy.fill(0)
+                charger.requested_end_state_of_charge.fill(0)
             return True
         except ValueError:
             return False

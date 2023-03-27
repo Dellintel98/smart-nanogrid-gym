@@ -9,45 +9,55 @@ from stable_baselines3 import PPO
 from stable_baselines3.common.evaluation import evaluate_policy
 import time
 
+number_of_chargers = 2
+
 env_variants = [
     {
-        'variant_name': 'basic-',
+        'variant_name': 'basic',
         'config': {
             'vehicle_to_everything': False,
             'pv_system_available_in_model': False,
             'battery_system_available_in_model': False,
-            'environment_mode': 'training'
+            'environment_mode': 'training',
+            'algorithm_used': 'PPO',
+            'number_of_chargers': number_of_chargers
         }},
     {
-        'variant_name': 'b-pv-',
+        'variant_name': 'b-pv-only-departure',
         'config': {
             'vehicle_to_everything': False,
             'pv_system_available_in_model': True,
             'battery_system_available_in_model': True,
-            'environment_mode': 'training'
+            'environment_mode': 'training',
+            'algorithm_used': 'PPO',
+            'number_of_chargers': number_of_chargers
         }},
     {
-        'variant_name': 'v2x-',
+        'variant_name': 'v2x',
         'config': {
             'vehicle_to_everything': True,
             'pv_system_available_in_model': False,
             'battery_system_available_in_model': False,
-            'environment_mode': 'training'
+            'environment_mode': 'training',
+            'algorithm_used': 'PPO',
+            'number_of_chargers': number_of_chargers
         }},
     {
-        'variant_name': 'v2x-b-pv-',
+        'variant_name': 'v2x-b-pv',
         'config': {
             'vehicle_to_everything': True,
             'pv_system_available_in_model': True,
             'battery_system_available_in_model': True,
-            'environment_mode': 'training'
+            'environment_mode': 'training',
+            'algorithm_used': 'PPO',
+            'number_of_chargers': number_of_chargers
         }}
 ]
-current_env = env_variants[3]
+current_env = env_variants[0]
 current_env_name = current_env['variant_name']
 
-models_dir = f"models/PPO-{current_env_name}"
-logdir = f"logs/PPO-{current_env_name}"
+models_dir = f"models/PPO-{current_env_name}-sparse-reward"
+logdir = f"logs/PPO-{current_env_name}-sparse-reward"
 
 if not os.path.exists(models_dir):
     os.makedirs(models_dir)
@@ -58,7 +68,8 @@ if not os.path.exists(logdir):
 current_env_configuration = current_env['config']
 env = gym.make('SmartNanogridEnv-v0', **current_env_configuration)
 
-model = PPO("MlpPolicy", env, verbose=1, tensorboard_log=logdir)
+device = 'cuda' if number_of_chargers >= 8 else 'cpu'
+model = PPO("MlpPolicy", env, verbose=1, tensorboard_log=logdir, device=device)
 
 TIMESTEPS = 20000
 # TIMESTEPS = 200

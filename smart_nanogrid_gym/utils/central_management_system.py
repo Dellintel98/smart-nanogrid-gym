@@ -137,6 +137,8 @@ class CentralManagementSystem:
         else:
             available_power = available_solar_power - power_demand
             power_to_grid = self.calculate_amount_of_power_supplied_to_grid(available_power, battery_action)
+            if power_to_grid != 0:
+                breakpoint()
             return power_to_grid
 
     def calculate_amount_of_power_supplied_from_grid(self, power_demand, battery_action):

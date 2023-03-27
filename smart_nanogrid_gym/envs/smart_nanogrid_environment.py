@@ -26,14 +26,14 @@ from ..utils.config import data_files_directory_path, solvers_files_directory_pa
 #       v2g and battery and PV, v2x and battery and PV
 
 class SmartNanogridEnv(gym.Env):
-    def __init__(self, price_model=0, pv_system_available_in_model=True, battery_system_available_in_model=True,
+    def __init__(self, price_model=0, number_of_chargers=8, pv_system_available_in_model=True, battery_system_available_in_model=True,
                  vehicle_to_everything=False, enable_different_vehicle_battery_capacities=True, enable_requested_state_of_charge=False,
                  algorithm_used='', environment_mode='', time_interval=''):
         # Todo: Feat: Add possibility to specify whether to use same capacity or different ones for vehicle battery
         self.ALGORITHM_USED = algorithm_used
         self.ENVIRONMENT_MODE = environment_mode
         # Add building_in_nanogrid=False, building_demand=False as init arguments
-        self.NUMBER_OF_CHARGERS = 4
+        self.NUMBER_OF_CHARGERS = number_of_chargers
         self.NUMBER_OF_DAYS_TO_PREDICT = 1
         self.REQUESTED_TIME_INTERVAL = time_interval
         self.TIME_INTERVAL = self.set_time_interval(time_interval)
@@ -226,13 +226,14 @@ class SmartNanogridEnv(gym.Env):
 
         saving_directory_path = solvers_files_directory_path + '\\RL\\' + file_destination + '\\'
 
-        file_name = f'{self.ALGORITHM_USED}-{model_variant_name}-{self.REQUESTED_TIME_INTERVAL}-prediction_results.mat'
+        file_name = f'{self.ALGORITHM_USED}-{model_variant_name}-{self.REQUESTED_TIME_INTERVAL}-prediction_results-sparse-reward.mat'
         savemat(saving_directory_path + file_name, {'Prediction_results': prediction_results})
 
         self.central_management_system.charging_station.save_initial_values_to_mat_file(saving_directory_path,
                                                                                         filename_prefix=f'{self.ALGORITHM_USED}-'
                                                                                                         f'{model_variant_name}-'
-                                                                                                        f'{self.REQUESTED_TIME_INTERVAL}-')
+                                                                                                        f'{self.REQUESTED_TIME_INTERVAL}'
+                                                                                                        f'-sparse-reward')
 
     def reset(self, generate_new_initial_values=True, algorithm_used='', environment_mode='', **kwargs):
         self.timestep = 0
@@ -245,8 +246,8 @@ class SmartNanogridEnv(gym.Env):
         self.battery_per_timestep = []
         self.grid_energy_cost_per_timestep = []
 
-        self.ALGORITHM_USED = algorithm_used
-        self.ENVIRONMENT_MODE = environment_mode
+        self.ALGORITHM_USED = algorithm_used if algorithm_used else self.ALGORITHM_USED
+        self.ENVIRONMENT_MODE = environment_mode if environment_mode else self.ENVIRONMENT_MODE
 
         # Todo: Feat: Add reset to all subclasses and to price and pv if different models have different configs for them
 

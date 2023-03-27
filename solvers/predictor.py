@@ -25,11 +25,14 @@ def predict_single_day(current_model, env, kwargs):
     return rewards_list
 
 
+number_of_chargers = 2
+device = 'cuda' if number_of_chargers >= 8 else 'cpu'
+
 config_info = {
-    'basic': {'vehicle_to_everything': False, 'pv_system_available_in_model': False, 'battery_system_available_in_model': False},
-    'b-pv': {'vehicle_to_everything': False, 'pv_system_available_in_model': True, 'battery_system_available_in_model': True},
-    'v2x': {'vehicle_to_everything': True, 'pv_system_available_in_model': False, 'battery_system_available_in_model': False},
-    'v2x-b-pv': {'vehicle_to_everything': True, 'pv_system_available_in_model': True, 'battery_system_available_in_model': True}
+    'basic': {'vehicle_to_everything': False, 'pv_system_available_in_model': False, 'battery_system_available_in_model': False, 'number_of_chargers': number_of_chargers},
+    'b-pv': {'vehicle_to_everything': False, 'pv_system_available_in_model': True, 'battery_system_available_in_model': True, 'number_of_chargers': number_of_chargers},
+    'v2x': {'vehicle_to_everything': True, 'pv_system_available_in_model': False, 'battery_system_available_in_model': False, 'number_of_chargers': number_of_chargers},
+    'v2x-b-pv': {'vehicle_to_everything': True, 'pv_system_available_in_model': True, 'battery_system_available_in_model': True, 'number_of_chargers': number_of_chargers}
 }
 
 envs = {
@@ -63,10 +66,10 @@ for name in names:
 
     uppercase_name = name.upper()
     if 'DDPG' in uppercase_name:
-        new_model = DDPG.load(model_path, env=current_env)
+        new_model = DDPG.load(model_path, env=current_env, device=device)
         models.append({'name': name, 'model': new_model, 'env_name': env_variant_name, 'info': {'algorithm': 'DDPG'}})
     elif 'PPO' in uppercase_name:
-        new_model = PPO.load(model_path, env=current_env)
+        new_model = PPO.load(model_path, env=current_env, device=device)
         models.append({'name': name, 'model': new_model, 'env_name': env_variant_name, 'info': {'algorithm': 'PPO'}})
     else:
         raise ValueError(f"{name} nanogrid model variant should in it's name have specified which algorithm it used "
