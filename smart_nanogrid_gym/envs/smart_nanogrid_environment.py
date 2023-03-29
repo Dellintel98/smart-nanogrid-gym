@@ -226,14 +226,21 @@ class SmartNanogridEnv(gym.Env):
 
         saving_directory_path = solvers_files_directory_path + '\\RL\\' + file_destination + '\\'
 
-        file_name = f'{self.ALGORITHM_USED}-{model_variant_name}-{self.REQUESTED_TIME_INTERVAL}-prediction_results-sparse-reward.mat'
+        # file_name = f'{self.ALGORITHM_USED}-{model_variant_name}-{self.REQUESTED_TIME_INTERVAL}-prediction_results-dense-reward.mat'
+        # file_name = f'{self.ALGORITHM_USED}-{model_variant_name}-{self.REQUESTED_TIME_INTERVAL}-prediction_results-sparse-reward.mat'
+        # file_name = f'{self.ALGORITHM_USED}-{model_variant_name}-{self.REQUESTED_TIME_INTERVAL}-prediction_results-no-reward.mat'
+        file_name = f'{self.ALGORITHM_USED}-{model_variant_name}-{self.REQUESTED_TIME_INTERVAL}-prediction_results-1.mat'
+        # file_name = f'{self.ALGORITHM_USED}-{model_variant_name}-{self.REQUESTED_TIME_INTERVAL}-prediction_results-simpler.mat'
         savemat(saving_directory_path + file_name, {'Prediction_results': prediction_results})
 
         self.central_management_system.charging_station.save_initial_values_to_mat_file(saving_directory_path,
                                                                                         filename_prefix=f'{self.ALGORITHM_USED}-'
                                                                                                         f'{model_variant_name}-'
-                                                                                                        f'{self.REQUESTED_TIME_INTERVAL}'
-                                                                                                        f'-sparse-reward')
+                                                                                                        f'{self.REQUESTED_TIME_INTERVAL}-1')
+                                                                                                        # f'-simpler')
+                                                                                                        # f'-no-reward')
+                                                                                                        # f'-sparse-reward')
+                                                                                                        # f'-dense-reward')
 
     def reset(self, generate_new_initial_values=True, algorithm_used='', environment_mode='', **kwargs):
         self.timestep = 0

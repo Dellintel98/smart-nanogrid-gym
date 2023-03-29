@@ -118,3 +118,4 @@ fabric.properties
 
 # Smart Nanogrid Gym package installation
 smart_nanogrid_gym.egg-info/
+/smart_nanogrid_gym/old/

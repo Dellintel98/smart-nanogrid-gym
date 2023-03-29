@@ -1,6 +1,7 @@
 class Penaliser:
     def __init__(self):
         self.insufficiently_charged_vehicles_penalty = 0
+        self.state_of_charge_above_1_penalty = 0
         self.battery_penalty = 0
         self.total_penalty = 0
 
@@ -29,6 +30,12 @@ class Penaliser:
             penalty = (uncharged_capacity * 2) ** 2
 
         return penalty
+
+    def penalise_vehicle_charging_max_state_of_charge(self, vehicle_soc):
+        if vehicle_soc > 1.0:
+            self.state_of_charge_above_1_penalty = (vehicle_soc * 3) ** 2
+        else:
+            self.state_of_charge_above_1_penalty = 0
 
     def penalise_battery_charging(self, positive_battery_action):
         if positive_battery_action < 0:

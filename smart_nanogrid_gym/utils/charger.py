@@ -39,9 +39,17 @@ class Charger:
         return self.power_value
 
     def charge_vehicle(self, action, timestep, time_interval):
+        # Todo: Train model also in these specifications: 1) [0/-22, 22], 2) [0/-inf, inf] with penalty for crossing the
+        #       22 kW limit
         max_charging_power = self.calculate_max_charging_power(timestep, time_interval)
         charging_power = self.calculate_charging_or_discharging_power(max_charging_power, action)
+        # charging_power = self.calculate_charging_power(action)
         self.calculate_next_vehicle_state_of_charge(charging_power, timestep, time_interval)
+        return charging_power
+
+    def calculate_charging_power(self, action):
+        # Todo: Add alpha limit for CC-CV charging switch
+        charging_power = action * self.connected_electric_vehicle.max_charging_power * self.connected_electric_vehicle.charging_efficiency
         return charging_power
 
     def calculate_max_charging_power(self, timestep, time_interval):
