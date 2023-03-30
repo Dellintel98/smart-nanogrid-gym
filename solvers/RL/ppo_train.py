@@ -58,14 +58,14 @@ current_env_name = current_env['variant_name']
 
 # models_dir = f"models/PPO-{current_env_name}-dense-reward"
 # models_dir = f"models/PPO-{current_env_name}-sparse-reward"
-models_dir = f"models/PPO-{current_env_name}-1"
+# models_dir = f"models/PPO-{current_env_name}-1"
 # models_dir = f"models/PPO-{current_env_name}-no-reward"
-# models_dir = f"models/PPO-{current_env_name}-simpler"
+models_dir = f"models/PPO-{current_env_name}-simpler-departure"
 # logdir = f"logs/PPO-{current_env_name}-dense-reward"
 # logdir = f"logs/PPO-{current_env_name}-sparse-reward"
-logdir = f"logs/PPO-{current_env_name}-1"
+# logdir = f"logs/PPO-{current_env_name}-1"
 # logdir = f"logs/PPO-{current_env_name}-no-reward"
-# logdir = f"logs/PPO-{current_env_name}-simpler"
+logdir = f"logs/PPO-{current_env_name}-simpler-departure"
 
 if not os.path.exists(models_dir):
     os.makedirs(models_dir)

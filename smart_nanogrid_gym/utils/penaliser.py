@@ -21,10 +21,17 @@ class Penaliser:
         # uncharged_capacity = 1 - soc[vehicle, timestep - 1]
         uncharged_capacity = requested_end_soc[vehicle, timestep - 1] - soc[vehicle, timestep - 1]
         charging_breathing_space = 0.05 * requested_end_soc[vehicle, timestep - 1]
+        lower_breathing_space = -charging_breathing_space
+        upper_breathing_space = charging_breathing_space
+        # Todo: Rename to be readable and easily understandable
+        if requested_end_soc[vehicle, timestep - 1] == 1:
+            lower_breathing_space = 0.0
 
-        if -charging_breathing_space <= uncharged_capacity <= charging_breathing_space:
+        if lower_breathing_space <= uncharged_capacity <= upper_breathing_space:
             penalty = 0
-        elif uncharged_capacity < -charging_breathing_space:
+        elif uncharged_capacity < lower_breathing_space and requested_end_soc[vehicle, timestep - 1] == 1:
+            penalty = (uncharged_capacity * 4) ** 2
+        elif uncharged_capacity < lower_breathing_space:
             penalty = (uncharged_capacity * 2)
         else:
             penalty = (uncharged_capacity * 2) ** 2

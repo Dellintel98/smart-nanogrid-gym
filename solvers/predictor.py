@@ -1,5 +1,5 @@
 import gym
-import smart_nanogrid_gym
+# import smart_nanogrid_gym
 import numpy as np
 import os
 import argparse
