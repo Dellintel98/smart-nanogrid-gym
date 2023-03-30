@@ -16,7 +16,7 @@
       <excludeFolder url="file://$MODULE_DIR$/solvers/RL/old_logs/PPO-v2x-1677425354" />
       <excludeFolder url="file://$MODULE_DIR$/solvers/RL/old_logs/PPO-v2x-b-pv-1677428642" />
     </content>
-    <orderEntry type="jdk" jdkName="Python 3.8 (smart-nanogrid-gym)" jdkType="Python SDK" />
+    <orderEntry type="jdk" jdkName="Python 3.10 (venv)" jdkType="Python SDK" />
     <orderEntry type="sourceFolder" forTests="false" />
   </component>
   <component name="PackageRequirementsSettings">
