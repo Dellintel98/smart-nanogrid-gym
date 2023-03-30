@@ -1,5 +1,5 @@
 import gym
-import smart_nanogrid_gym
+# import smart_nanogrid_gym
 import numpy as np
 import os
 import argparse
@@ -38,8 +38,8 @@ config_info = {
 envs = {
     'basic': gym.make('SmartNanogridEnv-v0', **config_info['basic']),
     'b-pv': gym.make('SmartNanogridEnv-v0', **config_info['b-pv']),
-    'v2x': gym.make('SmartNanogridEnv-v0', **config_info['v2x']),
-    'v2x-b-pv': gym.make('SmartNanogridEnv-v0', **config_info['v2x-b-pv'])
+    # 'v2x': gym.make('SmartNanogridEnv-v0', **config_info['v2x']),
+    # 'v2x-b-pv': gym.make('SmartNanogridEnv-v0', **config_info['v2x-b-pv'])
 }
 
 names = os.listdir('RL\\models')
@@ -48,7 +48,7 @@ names = [name for name in names if name != '.gitignore']
 models = []
 for name in names:
     model_dir = f"{solvers_files_directory_path}\\RL\\models\\{name}"
-    model_path = f"{model_dir}\\980000"
+    model_path = f"{model_dir}\\999600"
 
     lowercase_name = name.lower()
     if 'v2x-b-pv' in lowercase_name:
@@ -82,7 +82,7 @@ for name in names:
     final_rewards[name] = 0
     mean_rewards[name] = 0
 
-reset_config = {'generate_new_initial_values': False}
+reset_config = {'generate_new_initial_values': True}
 # Todo: Feat: Specify reset path to initial_values for prediction
 for model in models:
     env_variant_name = model['env_name']
@@ -98,8 +98,8 @@ for name in names:
 
 envs['basic'].close()
 envs['b-pv'].close()
-envs['v2x'].close()
-envs['v2x-b-pv'].close()
+# envs['v2x'].close()
+# envs['v2x-b-pv'].close()
 
 plt.rcParams["figure.figsize"] = (15, 10)
 plt.rcParams.update({'font.size': 18})

@@ -9,7 +9,7 @@ from stable_baselines3 import PPO
 from stable_baselines3.common.evaluation import evaluate_policy
 import time
 
-number_of_chargers = 2
+number_of_chargers = 8
 
 env_variants = [
     {
@@ -23,7 +23,7 @@ env_variants = [
             'number_of_chargers': number_of_chargers
         }},
     {
-        'variant_name': 'b-pv-only-departure',
+        'variant_name': 'b-pv',
         'config': {
             'vehicle_to_everything': False,
             'pv_system_available_in_model': True,
@@ -56,8 +56,16 @@ env_variants = [
 current_env = env_variants[0]
 current_env_name = current_env['variant_name']
 
-models_dir = f"models/PPO-{current_env_name}-sparse-reward"
-logdir = f"logs/PPO-{current_env_name}-sparse-reward"
+# models_dir = f"models/PPO-{current_env_name}-dense-reward"
+# models_dir = f"models/PPO-{current_env_name}-sparse-reward"
+# models_dir = f"models/PPO-{current_env_name}-1"
+# models_dir = f"models/PPO-{current_env_name}-no-reward"
+models_dir = f"models/PPO-{current_env_name}-simpler-departure"
+# logdir = f"logs/PPO-{current_env_name}-dense-reward"
+# logdir = f"logs/PPO-{current_env_name}-sparse-reward"
+# logdir = f"logs/PPO-{current_env_name}-1"
+# logdir = f"logs/PPO-{current_env_name}-no-reward"
+logdir = f"logs/PPO-{current_env_name}-simpler-departure"
 
 if not os.path.exists(models_dir):
     os.makedirs(models_dir)
@@ -68,15 +76,18 @@ if not os.path.exists(logdir):
 current_env_configuration = current_env['config']
 env = gym.make('SmartNanogridEnv-v0', **current_env_configuration)
 
-device = 'cuda' if number_of_chargers >= 8 else 'cpu'
+device = 'cuda' if number_of_chargers > 8 else 'cpu'
 model = PPO("MlpPolicy", env, verbose=1, tensorboard_log=logdir, device=device)
 
-TIMESTEPS = 20000
-# TIMESTEPS = 200
+number_of_episodes = 850
+timesteps_per_episode = 24
+timesteps = number_of_episodes * timesteps_per_episode
+training_epochs = 50
+
 start = time.time()
-for i in range(1, 50):
-    model.learn(total_timesteps=TIMESTEPS, reset_num_timesteps=False, tb_log_name="PPO")
-    model.save(f"{models_dir}/{TIMESTEPS * i}")
+for epoch in range(training_epochs):
+    model.learn(total_timesteps=timesteps, reset_num_timesteps=False, tb_log_name="PPO")
+    model.save(f"{models_dir}/{timesteps * epoch}")
 
 env.close()
 

@@ -120,6 +120,8 @@ class CentralManagementSystem:
             'Grid energy': grid_energy,
             'Utilized solar energy': available_solar_power,
             'Insufficiently charged vehicles penalty': self.penaliser.get_insufficiently_charged_vehicles_penalty(),
+            # 'Battery penalty': self.penaliser.battery_penalty,
+            # 'Total penalty': total_penalty,
             'Battery state of charge': battery_soc,
             'Grid energy cost': grid_energy_cost
         }

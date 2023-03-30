@@ -25,6 +25,7 @@ class ChargingStation:
                                                      discharging_efficiency=0.95, max_charging_power=22,
                                                      max_discharging_power=22, requested_end_capacity=0.8)
         self.generated_initial_values = {}
+        self.generated_initial_values_json = {}
 
     def simulate(self, current_timestep, time_interval):
         self.find_departing_vehicles(current_timestep, time_interval)
@@ -43,6 +44,7 @@ class ChargingStation:
             vehicle_departing = self.check_is_vehicle_departing(self.departures[index], timestep)
             # vehicle_departing = self.check_is_vehicle_departing_in_next_3_timesteps(self.departures[index], timestep)
             # vehicle_departing = True
+            # vehicle_departing = False
 
             if charger_occupied and vehicle_departing:
                 self._departing_vehicles.append(index)
@@ -54,7 +56,7 @@ class ChargingStation:
             return False
 
     def check_is_vehicle_departing_in_next_3_timesteps(self, vehicle_departure, timestep):
-        if (timestep + 1 or timestep + 2 or timestep + 3) in vehicle_departure:
+        if (timestep + 1 in vehicle_departure) or (timestep + 2 in vehicle_departure) or (timestep + 3 in vehicle_departure):
             return True
         else:
             return False
@@ -151,7 +153,7 @@ class ChargingStation:
         } if initial_vehicle_presence_generated else {}
 
         self.generated_initial_values = generated_initial_values
-        # self.generated_initial_values = generated_initial_values_json
+        self.generated_initial_values_json = generated_initial_values_json
 
         with open(data_files_directory_path + "\\initial_values.json", "w") as fp:
             json.dump(generated_initial_values_json, fp, indent=4)
@@ -163,6 +165,11 @@ class ChargingStation:
     def save_initial_values_to_mat_file(self, path, filename_prefix):
         prefix = f'\\{filename_prefix}-' if filename_prefix else ''
         savemat(path + f'\\{prefix}initial_values.mat', self.generated_initial_values)
+
+    def save_initial_values_to_json_file(self, path, filename_prefix):
+        prefix = f'\\{filename_prefix}-' if filename_prefix else ''
+        with open(path + f'\\{prefix}initial_values.json', "w") as fp:
+            json.dump(self.generated_initial_values_json, fp, indent=4)
 
     def generate_initial_vehicle_presence(self, initial_variables_cleared, time_interval):
         if initial_variables_cleared:

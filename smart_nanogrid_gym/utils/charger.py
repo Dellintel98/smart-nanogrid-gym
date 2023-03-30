@@ -39,9 +39,14 @@ class Charger:
         return self.power_value
 
     def charge_vehicle(self, action, timestep, time_interval):
-        max_charging_power = self.calculate_max_charging_power(timestep, time_interval)
-        charging_power = self.calculate_charging_or_discharging_power(max_charging_power, action)
+        # max_charging_power = self.calculate_max_charging_power(timestep, time_interval)
+        # charging_power = self.calculate_charging_or_discharging_power(max_charging_power, action)
+        charging_power = self.calculate_charging_power(action)
         self.calculate_next_vehicle_state_of_charge(charging_power, timestep, time_interval)
+        return charging_power
+
+    def calculate_charging_power(self, action):
+        charging_power = action * self.connected_electric_vehicle.max_charging_power * self.connected_electric_vehicle.charging_efficiency
         return charging_power
 
     def calculate_max_charging_power(self, timestep, time_interval):
@@ -60,6 +65,7 @@ class Charger:
 
     def calculate_next_vehicle_state_of_charge(self, power_value, timestep, time_interval):
         state_of_charge_value_change = (power_value * time_interval) / self.vehicle_capacities[timestep]
+        # Todo: Add alpha limit for CC-CV charging switch here
 
         if timestep in self.vehicle_arrivals:
             self.vehicle_state_of_charge[timestep] = self.vehicle_state_of_charge[timestep] + state_of_charge_value_change
@@ -67,8 +73,9 @@ class Charger:
             self.vehicle_state_of_charge[timestep] = self.vehicle_state_of_charge[timestep - 1] + state_of_charge_value_change
 
     def discharge_vehicle(self, action, timestep, time_interval):
-        max_discharging_power = self.calculate_max_discharging_power(timestep, time_interval)
-        discharging_power = self.calculate_charging_or_discharging_power(max_discharging_power, action)
+        # max_discharging_power = self.calculate_max_discharging_power(timestep, time_interval)
+        # discharging_power = self.calculate_charging_or_discharging_power(max_discharging_power, action)
+        discharging_power = self.calculate_discharging_power(action)
         self.calculate_next_vehicle_state_of_charge(discharging_power, timestep, time_interval)
         return discharging_power
 
@@ -82,3 +89,7 @@ class Charger:
 
         max_discharging_power = min([self.connected_electric_vehicle.max_discharging_power, power_left_to_discharge]) / self.connected_electric_vehicle.discharging_efficiency
         return max_discharging_power
+
+    def calculate_discharging_power(self, action):
+        discharging_power = action * self.connected_electric_vehicle.max_discharging_power * self.connected_electric_vehicle.discharging_efficiency
+        return discharging_power
