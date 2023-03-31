@@ -12,41 +12,54 @@ from stable_baselines3.common.evaluation import evaluate_policy
 from stable_baselines3.common.env_checker import check_env
 import time
 
+number_of_chargers = 8
 env_variants = [
     {
         'variant_name': 'basic-',
         'config': {
             'vehicle_to_everything': False,
             'pv_system_available_in_model': False,
-            'battery_system_available_in_model': False
+            'battery_system_available_in_model': False,
+            'environment_mode': 'training',
+            'algorithm_used': 'DDPG',
+            'number_of_chargers': number_of_chargers
         }},
     {
         'variant_name': 'b-pv-',
         'config': {
             'vehicle_to_everything': False,
             'pv_system_available_in_model': True,
-            'battery_system_available_in_model': True
+            'battery_system_available_in_model': True,
+            'environment_mode': 'training',
+            'algorithm_used': 'DDPG',
+            'number_of_chargers': number_of_chargers
         }},
     {
         'variant_name': 'v2x-',
         'config': {
             'vehicle_to_everything': True,
             'pv_system_available_in_model': False,
-            'battery_system_available_in_model': False
+            'battery_system_available_in_model': False,
+            'environment_mode': 'training',
+            'algorithm_used': 'DDPG',
+            'number_of_chargers': number_of_chargers
         }},
     {
         'variant_name': 'v2x-b-pv-',
         'config': {
             'vehicle_to_everything': True,
             'pv_system_available_in_model': True,
-            'battery_system_available_in_model': True
+            'battery_system_available_in_model': True,
+            'environment_mode': 'training',
+            'algorithm_used': 'DDPG',
+            'number_of_chargers': number_of_chargers
         }}
 ]
-current_env = env_variants[3]
+current_env = env_variants[1]
 current_env_name = current_env['variant_name']
 
-models_dir = f"models/DDPG-{current_env_name}"
-logdir = f"logs/DDPG-{current_env_name}"
+models_dir = f"models/DDPG-{current_env_name}-simpler-8-departure"
+logdir = f"logs/DDPG-{current_env_name}-simpler-8-departure"
 
 if not os.path.exists(models_dir):
     os.makedirs(models_dir)
@@ -64,13 +77,17 @@ n_actions = env.action_space.shape[-1]
 param_noise = None
 action_noise = OrnsteinUhlenbeckActionNoise(mean=np.zeros(n_actions), sigma=float(0.5) * np.ones(n_actions))
 
-model = DDPG(MlpPolicy, env, verbose=1, action_noise=action_noise, tensorboard_log=logdir)
+device = 'cuda' if number_of_chargers >= 8 else 'cpu'
+model = DDPG(MlpPolicy, env, verbose=1, action_noise=action_noise, tensorboard_log=logdir, device=device)
 
-TIMESTEPS = 20000
+number_of_episodes = 850
+timesteps_per_episode = 24
+timesteps = number_of_episodes * timesteps_per_episode
+training_epochs = 50
 start = time.time()
-for i in range(1, 50):
-    model.learn(total_timesteps=TIMESTEPS, reset_num_timesteps=False, tb_log_name="DDPG")
-    model.save(f"{models_dir}/{TIMESTEPS * i}")
+for epoch in range(training_epochs):
+    model.learn(total_timesteps=timesteps, reset_num_timesteps=False, tb_log_name="DDPG")
+    model.save(f"{models_dir}/{timesteps * epoch}")
 
 env.close()
 
