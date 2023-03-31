@@ -207,7 +207,6 @@ class SmartNanogridEnv(gym.Env):
             # 'Total_penalties': self.total_penalty_per_timestep,
             'Penalties': self.vehicle_penalty_per_timestep,
             'Available_solar_energy': available_solar_energy,
-            # 'Available_solar_energy': available_solar_energy.tolist(),
             'Total_cost': self.total_cost_per_timestep,
             'Battery_state_of_charge': self.battery_per_timestep,
             'Grid_energy_cost': self.grid_energy_cost_per_timestep
