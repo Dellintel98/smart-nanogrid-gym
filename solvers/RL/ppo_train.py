@@ -9,7 +9,7 @@ from stable_baselines3 import PPO
 from stable_baselines3.common.evaluation import evaluate_policy
 import time
 
-number_of_chargers = 8
+number_of_chargers = 4
 
 env_variants = [
     {
@@ -53,19 +53,19 @@ env_variants = [
             'number_of_chargers': number_of_chargers
         }}
 ]
-current_env = env_variants[0]
+current_env = env_variants[1]
 current_env_name = current_env['variant_name']
 
 # models_dir = f"models/PPO-{current_env_name}-dense-reward"
 # models_dir = f"models/PPO-{current_env_name}-sparse-reward"
 # models_dir = f"models/PPO-{current_env_name}-1"
 # models_dir = f"models/PPO-{current_env_name}-no-reward"
-models_dir = f"models/PPO-{current_env_name}-simpler-departure"
+models_dir = f"models/PPO-{current_env_name}-simpler-4-departure"
 # logdir = f"logs/PPO-{current_env_name}-dense-reward"
 # logdir = f"logs/PPO-{current_env_name}-sparse-reward"
 # logdir = f"logs/PPO-{current_env_name}-1"
 # logdir = f"logs/PPO-{current_env_name}-no-reward"
-logdir = f"logs/PPO-{current_env_name}-simpler-departure"
+logdir = f"logs/PPO-{current_env_name}-simpler-4-departure"
 
 if not os.path.exists(models_dir):
     os.makedirs(models_dir)
