@@ -30,21 +30,25 @@ from ..utils.config import data_files_directory_path, solvers_files_directory_pa
 class SmartNanogridEnv(gym.Env):
     def __init__(self, price_model=0, number_of_chargers=8, pv_system_available_in_model=True, battery_system_available_in_model=True,
                  vehicle_to_everything=False, enable_different_vehicle_battery_capacities=True, enable_requested_state_of_charge=False,
-                 algorithm_used='', environment_mode='', time_interval=''):
+                 algorithm_used='', environment_mode='', time_interval='', charging_mode='', vehicle_uncharged_penalty_mode=''):
         # Todo: Feat: Add possibility to specify whether to use same capacity or different ones for vehicle battery
-        self.ALGORITHM_USED = algorithm_used
-        self.ENVIRONMENT_MODE = environment_mode
-        # Add building_in_nanogrid=False, building_demand=False as init arguments
-        self.NUMBER_OF_CHARGERS = number_of_chargers
-        self.NUMBER_OF_DAYS_TO_PREDICT = 1
-        self.REQUESTED_TIME_INTERVAL = time_interval
-        self.TIME_INTERVAL = self.set_time_interval(time_interval)
-        self.NUMBER_OF_HOURS_AHEAD = 3
         self.CURRENT_PRICE_MODEL = price_model
+        self.NUMBER_OF_CHARGERS = number_of_chargers
+
         self.PV_SYSTEM_AVAILABLE_IN_MODEL = pv_system_available_in_model
         self.BATTERY_SYSTEM_AVAILABLE_IN_MODEL = battery_system_available_in_model
         self.VEHICLE_TO_EVERYTHING = vehicle_to_everything
-        # self.BUILDING_IN_NANOGRID = building_in_nanogrid
+
+        self.ALGORITHM_USED = algorithm_used
+        self.ENVIRONMENT_MODE = environment_mode
+        self.REQUESTED_TIME_INTERVAL = time_interval
+        self.TIME_INTERVAL = self.set_time_interval(time_interval)
+
+        self.CHARGING_MODE = charging_mode
+        self.VEHICLE_UNCHARGED_PENALTY_MODE = vehicle_uncharged_penalty_mode
+
+        self.NUMBER_OF_DAYS_TO_PREDICT = 1
+        self.NUMBER_OF_HOURS_AHEAD = 3
 
         self.central_management_system = CentralManagementSystem(self.BATTERY_SYSTEM_AVAILABLE_IN_MODEL,
                                                                  self.PV_SYSTEM_AVAILABLE_IN_MODEL,
@@ -233,6 +237,8 @@ class SmartNanogridEnv(gym.Env):
             file_destination = ''
 
         saving_directory_path = solvers_files_directory_path + '\\RL\\' + file_destination + '\\'
+
+        file_name_prefix = f'{self.ALGORITHM_USED}-{model_variant_name}-{self.REQUESTED_TIME_INTERVAL}-prediction_results-simpler-4-departure'
 
         # file_name = f'{self.ALGORITHM_USED}-{model_variant_name}-{self.REQUESTED_TIME_INTERVAL}-prediction_results-dense-reward.mat'
         # file_name = f'{self.ALGORITHM_USED}-{model_variant_name}-{self.REQUESTED_TIME_INTERVAL}-prediction_results-sparse-reward.mat'

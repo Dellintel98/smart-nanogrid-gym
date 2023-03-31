@@ -10,8 +10,8 @@ from smart_nanogrid_gym.utils.pv_system_manager import PVSystemManager
 class CentralManagementSystem:
     def __init__(self, battery_system_available_in_model, pv_system_available_in_model, vehicle_to_everything,
                  current_price_model, experiment_length_in_days, time_interval, number_of_chargers,
-                 enable_different_vehicle_battery_capacities, enable_requested_state_of_charge):
-        # To-do: Add building_demand, building_in_nanogrid as init arguments
+                 enable_different_vehicle_battery_capacities, enable_requested_state_of_charge,
+                 charging_mode, vehicle_uncharged_penalty_mode):
         self.TIME_INTERVAL = time_interval
         self.EXPERIMENT_LENGTH_IN_DAYS = experiment_length_in_days
         self.NUMBER_OF_CHARGERS = number_of_chargers
@@ -20,7 +20,10 @@ class CentralManagementSystem:
         self.pv_system_manager = self.initialise_pv_system(pv_system_available_in_model)
 
         self.vehicle_to_everything = vehicle_to_everything
-        self.charging_station = ChargingStation(number_of_chargers, time_interval, enable_different_vehicle_battery_capacities, enable_requested_state_of_charge)
+        self.charging_station = ChargingStation(number_of_chargers, time_interval,
+                                                enable_different_vehicle_battery_capacities,
+                                                enable_requested_state_of_charge, charging_mode,
+                                                vehicle_uncharged_penalty_mode)
 
         self.accountant = Accountant()
         self.accountant.set_energy_price(current_price_model, experiment_length_in_days, time_interval)

@@ -3,9 +3,11 @@ from numpy import ndarray
 
 
 class BatteryEnergyStorageSystem:
-    def __init__(self, max_capacity: int, current_capacity: float, max_charging_power: int, max_discharging_power: int,
+    def __init__(self, charging_mode, max_capacity: int, current_capacity: float,
+                 max_charging_power: int, max_discharging_power: int,
                  charging_efficiency: float = 0.95, discharging_efficiency: float = 0.95,
                  depth_of_discharge: float = 0.15):
+        self.CHARGING_MODE = charging_mode
         self.max_capacity: int = max_capacity
         self.current_capacity: float = current_capacity
         self.charging_efficiency: float = charging_efficiency
@@ -17,22 +19,32 @@ class BatteryEnergyStorageSystem:
     def charge(self, available_power, battery_action, time_interval):
         capacity_available_to_charge = 1 - self.current_capacity
 
-        if capacity_available_to_charge > 0:
-            power_available_for_charge = (capacity_available_to_charge * self.max_capacity) / time_interval
-            max_charging_power = min([self.max_charging_power, power_available_for_charge])
-            charging_power = battery_action * max_charging_power
+        if self.CHARGING_MODE == 'controlled':
+            if capacity_available_to_charge > 0:
+                power_available_for_charge = (capacity_available_to_charge * self.max_capacity) / time_interval
+                max_charging_power = min([self.max_charging_power, power_available_for_charge]) * self.charging_efficiency
+                charging_power = battery_action * max_charging_power
 
-            remaining_available_power = available_power - charging_power
+                remaining_available_power = available_power - charging_power
 
-            if remaining_available_power < 0:
-                charging_power = battery_action * available_power
-                remaining_available_power = 0
+                if remaining_available_power < 0:
+                    charging_power = battery_action * available_power
+                    remaining_available_power = 0
 
+                self.current_capacity = self.current_capacity + (charging_power * time_interval) / self.max_capacity
+
+                return remaining_available_power
+            else:
+                return available_power
+        elif self.CHARGING_MODE == 'bounded':
+            charging_power = battery_action * self.max_charging_power * self.charging_efficiency
             self.current_capacity = self.current_capacity + (charging_power * time_interval) / self.max_capacity
 
+            remaining_available_power = available_power - charging_power
+            # Todo: Finish bounded mode and add it for discharging also
+            # Todo: Add penalty for bounded dis/charging
+
             return remaining_available_power
-        else:
-            return available_power
 
     def discharge(self, power_demand, battery_action, time_interval):
         capacity_available_to_discharge = self.current_capacity - self.depth_of_discharge

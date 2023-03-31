@@ -10,6 +10,14 @@ from stable_baselines3.common.evaluation import evaluate_policy
 import time
 
 number_of_chargers = 4
+vehicle_charging_modes = ['controlled', 'bounded']
+# charging modes: controlled [with remaining capacity and soc], bounded [-1, 1]*max_power;
+#        {add later maybe: max_bounded[-22, 22], unbounded[-inf, inf]}
+charging_mode = vehicle_charging_modes[0]
+
+vehicle_uncharged_penalty_modes = ['no_penalty', 'on_departure', 'sparse', 'dense']
+# penalty modes: no_penalty, on_departure, sparse, dense
+penalty_mode = vehicle_uncharged_penalty_modes[0]
 
 env_variants = [
     {
@@ -20,7 +28,9 @@ env_variants = [
             'battery_system_available_in_model': False,
             'environment_mode': 'training',
             'algorithm_used': 'PPO',
-            'number_of_chargers': number_of_chargers
+            'number_of_chargers': number_of_chargers,
+            'charging_mode': charging_mode,
+            'vehicle_uncharged_penalty_mode': penalty_mode
         }},
     {
         'variant_name': 'b-pv',
@@ -30,7 +40,9 @@ env_variants = [
             'battery_system_available_in_model': True,
             'environment_mode': 'training',
             'algorithm_used': 'PPO',
-            'number_of_chargers': number_of_chargers
+            'number_of_chargers': number_of_chargers,
+            'charging_mode': charging_mode,
+            'vehicle_uncharged_penalty_mode': penalty_mode
         }},
     {
         'variant_name': 'v2x',
@@ -40,7 +52,9 @@ env_variants = [
             'battery_system_available_in_model': False,
             'environment_mode': 'training',
             'algorithm_used': 'PPO',
-            'number_of_chargers': number_of_chargers
+            'number_of_chargers': number_of_chargers,
+            'charging_mode': charging_mode,
+            'vehicle_uncharged_penalty_mode': penalty_mode
         }},
     {
         'variant_name': 'v2x-b-pv',
@@ -50,22 +64,16 @@ env_variants = [
             'battery_system_available_in_model': True,
             'environment_mode': 'training',
             'algorithm_used': 'PPO',
-            'number_of_chargers': number_of_chargers
+            'number_of_chargers': number_of_chargers,
+            'charging_mode': charging_mode,
+            'vehicle_uncharged_penalty_mode': penalty_mode
         }}
 ]
 current_env = env_variants[1]
 current_env_name = current_env['variant_name']
 
-# models_dir = f"models/PPO-{current_env_name}-dense-reward"
-# models_dir = f"models/PPO-{current_env_name}-sparse-reward"
-# models_dir = f"models/PPO-{current_env_name}-1"
-# models_dir = f"models/PPO-{current_env_name}-no-reward"
-models_dir = f"models/PPO-{current_env_name}-simpler-4-departure"
-# logdir = f"logs/PPO-{current_env_name}-dense-reward"
-# logdir = f"logs/PPO-{current_env_name}-sparse-reward"
-# logdir = f"logs/PPO-{current_env_name}-1"
-# logdir = f"logs/PPO-{current_env_name}-no-reward"
-logdir = f"logs/PPO-{current_env_name}-simpler-4-departure"
+models_dir = f"models/PPO-{current_env_name}-{charging_mode}-{penalty_mode}-{number_of_chargers}"
+logdir = f"logs/PPO-{current_env_name}-{charging_mode}-{penalty_mode}-{number_of_chargers}"
 
 if not os.path.exists(models_dir):
     os.makedirs(models_dir)

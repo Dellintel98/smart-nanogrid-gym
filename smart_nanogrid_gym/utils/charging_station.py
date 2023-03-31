@@ -9,12 +9,15 @@ from smart_nanogrid_gym.utils.electric_vehicle import ElectricVehicle
 
 
 class ChargingStation:
-    def __init__(self, number_of_chargers, time_interval, enable_different_vehicle_battery_capacities, enable_requested_state_of_charge):
+    def __init__(self, number_of_chargers, time_interval, enable_different_vehicle_battery_capacities,
+                 enable_requested_state_of_charge, charging_mode, vehicle_uncharged_penalty_mode):
         self.NUMBER_OF_CHARGERS = number_of_chargers
+        self.array_columns = int(25 / time_interval)
         self.enable_different_vehicle_battery_capacities = enable_different_vehicle_battery_capacities
         self.enable_requested_state_of_charge = enable_requested_state_of_charge
-        self.array_columns = int(25 / time_interval)
-        self.chargers = [Charger() for _ in range(self.NUMBER_OF_CHARGERS)]
+        self.chargers = [Charger(charging_mode) for _ in range(self.NUMBER_OF_CHARGERS)]
+        self.UNCHARGED_PENALTY_MODE = vehicle_uncharged_penalty_mode
+
         self.arrivals = []
         self.departures = []
         self.departure_times = []
@@ -41,10 +44,17 @@ class ChargingStation:
         self._departing_vehicles.clear()
         for index, charger in enumerate(self.chargers):
             charger_occupied = charger.occupancy[timestep]
-            vehicle_departing = self.check_is_vehicle_departing(self.departures[index], timestep)
-            # vehicle_departing = self.check_is_vehicle_departing_in_next_3_timesteps(self.departures[index], timestep)
-            # vehicle_departing = True
-            # vehicle_departing = False
+
+            if self.UNCHARGED_PENALTY_MODE == 'no_penalty':
+                vehicle_departing = False
+            elif self.UNCHARGED_PENALTY_MODE == 'on_departure':
+                vehicle_departing = self.check_is_vehicle_departing(self.departures[index], timestep)
+            elif self.UNCHARGED_PENALTY_MODE == 'sparse':
+                vehicle_departing = self.check_is_vehicle_departing_in_next_3_timesteps(self.departures[index], timestep)
+            elif self.UNCHARGED_PENALTY_MODE == 'dense':
+                vehicle_departing = True
+            else:
+                raise ValueError("Error: Wrong vehicle uncharged - penalty mode provided!")
 
             if charger_occupied and vehicle_departing:
                 self._departing_vehicles.append(index)

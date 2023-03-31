@@ -4,7 +4,8 @@ from numpy import array, zeros
 
 
 class Charger:
-    def __init__(self):
+    def __init__(self, charging_mode):
+        self.CHARGING_MODE = charging_mode
         self.occupied: bool = False
         self.connected_electric_vehicle: Optional[ElectricVehicle] = None
         self.power_value: float = 0.0
@@ -39,9 +40,14 @@ class Charger:
         return self.power_value
 
     def charge_vehicle(self, action, timestep, time_interval):
-        # max_charging_power = self.calculate_max_charging_power(timestep, time_interval)
-        # charging_power = self.calculate_charging_or_discharging_power(max_charging_power, action)
-        charging_power = self.calculate_charging_power(action)
+        if self.CHARGING_MODE == 'controlled':
+            max_charging_power = self.calculate_max_charging_power(timestep, time_interval)
+            charging_power = self.calculate_charging_or_discharging_power(max_charging_power, action)
+        elif self.CHARGING_MODE == 'bounded':
+            charging_power = self.calculate_charging_power(action)
+        else:
+            raise ValueError("Error: Wrong charging mode provided!")
+
         self.calculate_next_vehicle_state_of_charge(charging_power, timestep, time_interval)
         return charging_power
 
@@ -73,9 +79,14 @@ class Charger:
             self.vehicle_state_of_charge[timestep] = self.vehicle_state_of_charge[timestep - 1] + state_of_charge_value_change
 
     def discharge_vehicle(self, action, timestep, time_interval):
-        # max_discharging_power = self.calculate_max_discharging_power(timestep, time_interval)
-        # discharging_power = self.calculate_charging_or_discharging_power(max_discharging_power, action)
-        discharging_power = self.calculate_discharging_power(action)
+        if self.CHARGING_MODE == 'controlled':
+            max_discharging_power = self.calculate_max_discharging_power(timestep, time_interval)
+            discharging_power = self.calculate_charging_or_discharging_power(max_discharging_power, action)
+        elif self.CHARGING_MODE == 'bounded':
+            discharging_power = self.calculate_charging_power(action)
+        else:
+            raise ValueError("Error: Wrong charging mode provided!")
+
         self.calculate_next_vehicle_state_of_charge(discharging_power, timestep, time_interval)
         return discharging_power
 
