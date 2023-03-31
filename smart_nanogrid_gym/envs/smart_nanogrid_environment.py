@@ -193,7 +193,7 @@ class SmartNanogridEnv(gym.Env):
 
     def __save_prediction_results(self):
         if self.PV_SYSTEM_AVAILABLE_IN_MODEL:
-            available_solar_energy = self.central_management_system.pv_system_manager.get_available_solar_energy()
+            available_solar_energy = self.central_management_system.pv_system_manager.get_available_solar_energy().tolist()
         else:
             available_solar_energy = []
 
@@ -206,8 +206,8 @@ class SmartNanogridEnv(gym.Env):
             # 'Battery_penalties': self.battery_penalty_per_timestep,
             # 'Total_penalties': self.total_penalty_per_timestep,
             'Penalties': self.vehicle_penalty_per_timestep,
-            # 'Available_solar_energy': available_solar_energy.tolist(),
             'Available_solar_energy': available_solar_energy,
+            # 'Available_solar_energy': available_solar_energy.tolist(),
             'Total_cost': self.total_cost_per_timestep,
             'Battery_state_of_charge': self.battery_per_timestep,
             'Grid_energy_cost': self.grid_energy_cost_per_timestep
@@ -240,7 +240,7 @@ class SmartNanogridEnv(gym.Env):
         # file_name = f'{self.ALGORITHM_USED}-{model_variant_name}-{self.REQUESTED_TIME_INTERVAL}-prediction_results-no-reward.mat'
         # file_name = f'{self.ALGORITHM_USED}-{model_variant_name}-{self.REQUESTED_TIME_INTERVAL}-prediction_results-1.mat'
         # file_name = f'{self.ALGORITHM_USED}-{model_variant_name}-{self.REQUESTED_TIME_INTERVAL}-prediction_results-notebook'
-        file_name = f'{self.ALGORITHM_USED}-{model_variant_name}-{self.REQUESTED_TIME_INTERVAL}-prediction_results-simpler-8-departure'
+        file_name = f'{self.ALGORITHM_USED}-{model_variant_name}-{self.REQUESTED_TIME_INTERVAL}-prediction_results-simpler-4-departure'
         # file_name = f'{self.ALGORITHM_USED}-{model_variant_name}-{self.REQUESTED_TIME_INTERVAL}-prediction_results-simpler.mat'
         savemat(saving_directory_path + file_name + '.mat', {'Prediction_results': prediction_results})
 
@@ -251,14 +251,14 @@ class SmartNanogridEnv(gym.Env):
                                                                                          filename_prefix=f'{self.ALGORITHM_USED}-'
                                                                                                          f'{model_variant_name}-'
                                                                                                          f'{self.REQUESTED_TIME_INTERVAL}'
-                                                                                                         f'-simpler-8-departure')
+                                                                                                         f'-simpler-4-departure')
                                                                                                          # f'-notebook')
 
         self.central_management_system.charging_station.save_initial_values_to_mat_file(saving_directory_path,
                                                                                         filename_prefix=f'{self.ALGORITHM_USED}-'
                                                                                                         f'{model_variant_name}-'
                                                                                                         f'{self.REQUESTED_TIME_INTERVAL}'
-                                                                                                        f'-simpler-8-departure')
+                                                                                                        f'-simpler-4-departure')
                                                                                                         # f'-notebook')
                                                                                                         # f'-no-reward')
                                                                                                         # f'-sparse-reward')
