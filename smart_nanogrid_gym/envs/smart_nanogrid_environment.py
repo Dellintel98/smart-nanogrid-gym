@@ -68,6 +68,10 @@ class SmartNanogridEnv(gym.Env):
         self.battery_per_timestep, self.grid_energy_cost_per_timestep = None, None
         self.grid_power_per_timestep = None
 
+        self.battery_action_per_timestep, self.charger_actions_per_timestep = None, None
+        self.total_charging_power_per_timestep, self.total_discharging_power_per_timestep = None, None
+        self.charger_power_values_per_timestep, self.battery_power_value_per_timestep = None, None
+
         self.simulated_single_day = False
 
         amount_of_observed_variables = 1 + int(self.PV_SYSTEM_AVAILABLE_IN_MODEL)
@@ -132,6 +136,12 @@ class SmartNanogridEnv(gym.Env):
         self.total_penalty_per_timestep.append(results['Total penalty'])
         self.battery_per_timestep.append(results['Battery state of charge'])
         self.grid_energy_cost_per_timestep.append(results['Grid energy cost'])
+        self.battery_action_per_timestep.append(results['Battery action'])
+        self.charger_actions_per_timestep.append(results['Charger actions'])
+        self.total_charging_power_per_timestep.append(results['Total charging power'])
+        self.total_discharging_power_per_timestep.append(results['Total discharging power'])
+        self.charger_power_values_per_timestep.append(results['Charger power values'])
+        self.battery_power_value_per_timestep.append(results['Battery power value'])
 
         observations = self.__get_observations()
         self.timestep = self.timestep + 1
@@ -213,7 +223,13 @@ class SmartNanogridEnv(gym.Env):
             'Available_solar_energy': available_solar_energy,
             'Total_cost': self.total_cost_per_timestep,
             'Battery_state_of_charge': self.battery_per_timestep,
-            'Grid_energy_cost': self.grid_energy_cost_per_timestep
+            'Grid_energy_cost': self.grid_energy_cost_per_timestep,
+            'Battery_action': self.battery_action_per_timestep,
+            'Charger_actions': self.charger_actions_per_timestep,
+            'Total_charging_power': self.total_charging_power_per_timestep,
+            'Total_discharging_power': self.total_discharging_power_per_timestep,
+            'Charger_power_values': self.charger_power_values_per_timestep,
+            'Battery_power_value': self.battery_power_value_per_timestep
         }
         # Todo: Change mat to excel
         savemat(data_files_directory_path + '\\last_prediction_results.mat', {'Prediction_results': prediction_results})
@@ -266,6 +282,12 @@ class SmartNanogridEnv(gym.Env):
         self.total_penalty_per_timestep = []
         self.battery_per_timestep = []
         self.grid_energy_cost_per_timestep = []
+        self.battery_action_per_timestep = []
+        self.charger_actions_per_timestep = []
+        self.total_charging_power_per_timestep = []
+        self.total_discharging_power_per_timestep = []
+        self.charger_power_values_per_timestep = []
+        self.battery_power_value_per_timestep = []
 
         self.ALGORITHM_USED = algorithm_used if algorithm_used else self.ALGORITHM_USED
         self.ENVIRONMENT_MODE = environment_mode if environment_mode else self.ENVIRONMENT_MODE

@@ -15,6 +15,7 @@ class BatteryEnergyStorageSystem:
         self.max_charging_power: int = max_charging_power
         self.max_discharging_power: int = max_discharging_power
         self.depth_of_discharge: float = depth_of_discharge
+        self.current_power_value = 0
 
     def charge(self, available_power, battery_action, time_interval):
         capacity_available_to_charge = 1 - self.current_capacity
@@ -31,14 +32,17 @@ class BatteryEnergyStorageSystem:
                     charging_power = battery_action * available_power
                     remaining_available_power = 0
 
+                self.current_power_value = charging_power
                 self.current_capacity = self.current_capacity + (charging_power * time_interval) / self.max_capacity
 
                 return remaining_available_power
             else:
+                self.current_power_value = 0
                 return available_power
         elif self.CHARGING_MODE == 'bounded':
             charging_power = battery_action * self.max_charging_power * self.charging_efficiency
             self.current_capacity = self.current_capacity + (charging_power * time_interval) / self.max_capacity
+            self.current_power_value = charging_power
 
             remaining_available_power = available_power - charging_power
 
@@ -61,14 +65,17 @@ class BatteryEnergyStorageSystem:
                     discharging_power = battery_action * power_demand
                     remaining_demand = 0
 
+                self.current_power_value = discharging_power
                 self.current_capacity = self.current_capacity + (discharging_power * time_interval) / self.max_capacity
 
                 return remaining_demand
             else:
+                self.current_power_value = 0
                 return power_demand
         elif self.CHARGING_MODE == 'bounded':
             discharging_power = battery_action * self.max_discharging_power * self.discharging_efficiency
             self.current_capacity = self.current_capacity + (discharging_power * time_interval) / self.max_capacity
+            self.current_power_value = discharging_power
 
             remaining_demand = power_demand + discharging_power
 

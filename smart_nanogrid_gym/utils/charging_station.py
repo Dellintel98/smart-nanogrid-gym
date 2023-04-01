@@ -283,7 +283,11 @@ class ChargingStation:
         total_discharging_power = charger_power_values[charger_power_values < 0].sum()
         total_charging_power = charger_power_values[charger_power_values > 0].sum()
 
-        return total_charging_power, total_discharging_power
+        return {
+            'Total charging power': total_charging_power,
+            'Total discharging power': total_discharging_power,
+            'Charger power values': charger_power_values.tolist()
+        }
 
     def get_vehicles_state_of_charge(self):
         vehicle_state_of_charge = vstack([charger.vehicle_state_of_charge for charger in self.chargers])

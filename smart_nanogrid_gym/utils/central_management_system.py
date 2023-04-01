@@ -89,15 +89,14 @@ class CentralManagementSystem:
         else:
             battery_action = 0
 
-        [total_charging_power, total_discharging_power] = self.charging_station.simulate_vehicle_charging(charger_actions,
-                                                                                                          timestep,
-                                                                                                          self.TIME_INTERVAL)
+        result = self.charging_station.simulate_vehicle_charging(charger_actions, timestep, self.TIME_INTERVAL)
+
         if self.pv_system_manager:
             available_solar_power = self.pv_system_manager.get_available_solar_produced_power_at_timestep_t(timestep)
         else:
             available_solar_power = 0
 
-        total_power = total_charging_power + total_discharging_power
+        total_power = result['Total charging power'] + result['Total discharging power']
         grid_power = self.calculate_grid_power(total_power, available_solar_power, battery_action)
         grid_energy = grid_power * self.TIME_INTERVAL
 
@@ -126,7 +125,13 @@ class CentralManagementSystem:
             'Battery penalty': self.penaliser.total_battery_penalty,
             'Total penalty': total_penalty,
             'Battery state of charge': battery_soc,
-            'Grid energy cost': grid_energy_cost
+            'Grid energy cost': grid_energy_cost,
+            'Battery action': battery_action,
+            'Charger actions': charger_actions,
+            'Total charging power': result['Total charging power'],
+            'Total discharging power': result['Total discharging power'],
+            'Charger power values': result['Charger power values'],
+            'Battery power value': self.battery_system.current_power_value
         }
 
     def calculate_grid_power(self, power_demand, available_solar_power, battery_action):
