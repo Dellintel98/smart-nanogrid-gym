@@ -56,7 +56,8 @@ class SmartNanogridEnv(gym.Env):
                                                                  self.NUMBER_OF_DAYS_TO_PREDICT, self.TIME_INTERVAL,
                                                                  self.NUMBER_OF_CHARGERS,
                                                                  enable_different_vehicle_battery_capacities,
-                                                                 enable_requested_state_of_charge)
+                                                                 enable_requested_state_of_charge,
+                                                                 self.CHARGING_MODE, self.VEHICLE_UNCHARGED_PENALTY_MODE)
 
         self.timestep = None
         self.info = None
@@ -109,15 +110,15 @@ class SmartNanogridEnv(gym.Env):
         # Todo: Feat: Add security check for value provided as an argument
         if requested_time_interval:
             if 'h' in requested_time_interval:
-                time_interval = int(requested_time_interval.replace('h', ''))
+                time_interval = float(requested_time_interval.replace('h', ''))
                 return time_interval
             elif 'min' in requested_time_interval:
-                time_interval = int(requested_time_interval.replace('min', ''))
+                time_interval = float(requested_time_interval.replace('min', '')) / 60.0
                 return time_interval
             else:
                 raise ValueError('Wrong time interval was provided')
         else:
-            return int(1)
+            return float(1)
 
     def step(self, actions):
         results = self.central_management_system.simulate(self.timestep, actions)
@@ -190,7 +191,7 @@ class SmartNanogridEnv(gym.Env):
         return observations
 
     def __check_is_single_day_simulated(self):
-        if self.timestep == (24 / self.TIME_INTERVAL):
+        if self.timestep == (24.0 / self.TIME_INTERVAL):
             return True
         else:
             return False
@@ -238,36 +239,21 @@ class SmartNanogridEnv(gym.Env):
 
         saving_directory_path = solvers_files_directory_path + '\\RL\\' + file_destination + '\\'
 
-        file_name_prefix = f'{self.ALGORITHM_USED}-{model_variant_name}-{self.REQUESTED_TIME_INTERVAL}-prediction_results-simpler-4-departure'
+        file_name_prefix = f'{self.ALGORITHM_USED}'
+        file_name_root = f'{model_variant_name}-{self.CHARGING_MODE}-{self.VEHICLE_UNCHARGED_PENALTY_MODE}'
+        file_name_suffix = f'{self.NUMBER_OF_CHARGERS}-{self.REQUESTED_TIME_INTERVAL}'
+        file_name = f'{file_name_prefix}-{file_name_root}-{file_name_suffix}'
 
-        # file_name = f'{self.ALGORITHM_USED}-{model_variant_name}-{self.REQUESTED_TIME_INTERVAL}-prediction_results-dense-reward.mat'
-        # file_name = f'{self.ALGORITHM_USED}-{model_variant_name}-{self.REQUESTED_TIME_INTERVAL}-prediction_results-sparse-reward.mat'
-        # file_name = f'{self.ALGORITHM_USED}-{model_variant_name}-{self.REQUESTED_TIME_INTERVAL}-prediction_results-no-reward.mat'
-        # file_name = f'{self.ALGORITHM_USED}-{model_variant_name}-{self.REQUESTED_TIME_INTERVAL}-prediction_results-1.mat'
-        # file_name = f'{self.ALGORITHM_USED}-{model_variant_name}-{self.REQUESTED_TIME_INTERVAL}-prediction_results-notebook'
-        file_name = f'{self.ALGORITHM_USED}-{model_variant_name}-{self.REQUESTED_TIME_INTERVAL}-prediction_results-simpler-4-departure'
-        # file_name = f'{self.ALGORITHM_USED}-{model_variant_name}-{self.REQUESTED_TIME_INTERVAL}-prediction_results-simpler.mat'
-        savemat(saving_directory_path + file_name + '.mat', {'Prediction_results': prediction_results})
+        savemat(f'{saving_directory_path}{file_name}-prediction_results.mat', {'Prediction_results': prediction_results})
 
-        with open(saving_directory_path + file_name + ".json", "w") as fp:
+        with open(saving_directory_path + file_name + "-prediction_results.json", "w") as fp:
             json.dump(prediction_results, fp, indent=4)
 
         self.central_management_system.charging_station.save_initial_values_to_json_file(saving_directory_path,
-                                                                                         filename_prefix=f'{self.ALGORITHM_USED}-'
-                                                                                                         f'{model_variant_name}-'
-                                                                                                         f'{self.REQUESTED_TIME_INTERVAL}'
-                                                                                                         f'-simpler-4-departure')
-                                                                                                         # f'-notebook')
+                                                                                         filename=file_name)
 
         self.central_management_system.charging_station.save_initial_values_to_mat_file(saving_directory_path,
-                                                                                        filename_prefix=f'{self.ALGORITHM_USED}-'
-                                                                                                        f'{model_variant_name}-'
-                                                                                                        f'{self.REQUESTED_TIME_INTERVAL}'
-                                                                                                        f'-simpler-4-departure')
-                                                                                                        # f'-notebook')
-                                                                                                        # f'-no-reward')
-                                                                                                        # f'-sparse-reward')
-                                                                                                        # f'-dense-reward')
+                                                                                        filename=file_name)
 
     def reset(self, generate_new_initial_values=True, algorithm_used='', environment_mode='', **kwargs):
         self.timestep = 0

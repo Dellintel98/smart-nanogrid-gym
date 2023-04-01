@@ -172,12 +172,12 @@ class ChargingStation:
         # Todo: Change mat to excel
         savemat(data_files_directory_path + '\\initial_values.mat', generated_initial_values)
 
-    def save_initial_values_to_mat_file(self, path, filename_prefix):
-        prefix = f'\\{filename_prefix}-' if filename_prefix else ''
+    def save_initial_values_to_mat_file(self, path, filename):
+        prefix = f'\\{filename}-' if filename else ''
         savemat(path + f'\\{prefix}initial_values.mat', self.generated_initial_values)
 
-    def save_initial_values_to_json_file(self, path, filename_prefix):
-        prefix = f'\\{filename_prefix}-' if filename_prefix else ''
+    def save_initial_values_to_json_file(self, path, filename):
+        prefix = f'\\{filename}-' if filename else ''
         with open(path + f'\\{prefix}initial_values.json', "w") as fp:
             json.dump(self.generated_initial_values_json, fp, indent=4)
 
