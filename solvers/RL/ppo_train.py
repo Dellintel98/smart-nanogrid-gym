@@ -9,7 +9,7 @@ from stable_baselines3 import PPO
 from stable_baselines3.common.evaluation import evaluate_policy
 import time
 
-number_of_chargers = 4
+number_of_chargers = 1
 vehicle_charging_modes = ['controlled', 'bounded']
 # charging modes: controlled [with remaining capacity and soc], bounded [-1, 1]*max_power;
 #        {add later maybe: max_bounded[-22, 22], unbounded[-inf, inf]}
@@ -76,7 +76,7 @@ env_variants = [
             'time_interval': requested_time_interval
         }}
 ]
-current_env = env_variants[1]
+current_env = env_variants[0]
 current_env_name = current_env['variant_name']
 
 models_dir = f"models/PPO-{current_env_name}-{charging_mode}-{penalty_mode}-{number_of_chargers}-{requested_time_interval}"

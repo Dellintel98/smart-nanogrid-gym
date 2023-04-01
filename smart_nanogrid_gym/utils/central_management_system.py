@@ -113,8 +113,10 @@ class CentralManagementSystem:
 
         if self.battery_system:
             battery_soc = self.battery_system.current_capacity
+            battery_power_value = self.battery_system.current_power_value
         else:
             battery_soc = 0
+            battery_power_value = 0
 
         return {
             'Total cost': total_cost,
@@ -131,7 +133,7 @@ class CentralManagementSystem:
             'Total charging power': result['Total charging power'],
             'Total discharging power': result['Total discharging power'],
             'Charger power values': result['Charger power values'],
-            'Battery power value': self.battery_system.current_power_value
+            'Battery power value': battery_power_value
         }
 
     def calculate_grid_power(self, power_demand, available_solar_power, battery_action):
