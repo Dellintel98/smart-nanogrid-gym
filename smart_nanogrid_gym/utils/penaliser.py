@@ -71,6 +71,9 @@ class Penaliser:
         self.calculate_total_penalty()
         return self.total_penalty
 
+    def get_total_battery_penalty(self):
+        return self.total_battery_penalty
+
     def calculate_total_penalty(self):
         self.calculate_total_battery_penalty()
         self.calculate_total_vehicle_penalty()

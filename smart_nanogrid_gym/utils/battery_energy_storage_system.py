@@ -41,8 +41,6 @@ class BatteryEnergyStorageSystem:
             self.current_capacity = self.current_capacity + (charging_power * time_interval) / self.max_capacity
 
             remaining_available_power = available_power - charging_power
-            # Todo: Finish bounded mode and add it for discharging also
-            # Todo: Add penalty for bounded dis/charging
 
             return remaining_available_power
         else:
@@ -73,8 +71,6 @@ class BatteryEnergyStorageSystem:
             self.current_capacity = self.current_capacity + (discharging_power * time_interval) / self.max_capacity
 
             remaining_demand = power_demand + discharging_power
-            # Todo: Finish bounded mode and add it for discharging also
-            # Todo: Add penalty for bounded dis/charging
 
             return remaining_demand
         else:
