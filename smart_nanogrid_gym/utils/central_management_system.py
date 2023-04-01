@@ -16,7 +16,7 @@ class CentralManagementSystem:
         self.EXPERIMENT_LENGTH_IN_DAYS = experiment_length_in_days
         self.NUMBER_OF_CHARGERS = number_of_chargers
 
-        self.battery_system = self.initialise_battery_system(battery_system_available_in_model)
+        self.battery_system = self.initialise_battery_system(battery_system_available_in_model, charging_mode)
         self.pv_system_manager = self.initialise_pv_system(pv_system_available_in_model)
 
         self.vehicle_to_everything = vehicle_to_everything
@@ -30,9 +30,9 @@ class CentralManagementSystem:
 
         self.penaliser = Penaliser()
 
-    def initialise_battery_system(self, battery_system_available_in_model):
+    def initialise_battery_system(self, battery_system_available_in_model, charging_mode):
         if battery_system_available_in_model:
-            return BatteryEnergyStorageSystem(80, 0.5, 44, 44, 0.95, 0.95, 0.15)
+            return BatteryEnergyStorageSystem(charging_mode, 80, 0.5, 44, 44, 0.95, 0.95, 0.15)
         else:
             return None
 
@@ -130,8 +130,6 @@ class CentralManagementSystem:
         }
 
     def calculate_grid_power(self, power_demand, available_solar_power, battery_action):
-        # if building_in_nanogrid:
-        #     remaining_energy_demand = building_demand + total_power - available_renewable_energy
         remaining_power_demand = power_demand - available_solar_power
 
         if remaining_power_demand == 0:
@@ -150,6 +148,11 @@ class CentralManagementSystem:
         if self.battery_system and battery_action != 0:
             self.penaliser.penalise_battery_discharging(battery_action)
             remaining_power_demand = self.battery_system.discharge(power_demand, battery_action, self.TIME_INTERVAL)
+
+            if self.battery_system.CHARGING_MODE == 'bounded':
+                self.penaliser.penalise_discharging_battery_with_power_greater_than_power_demand(remaining_power_demand)
+                self.penaliser.penalise_battery_capacity_below_depth_of_discharge(self.battery_system.current_capacity,
+                                                                                  self.battery_system.depth_of_discharge)
             return remaining_power_demand
         else:
             return power_demand
@@ -158,6 +161,10 @@ class CentralManagementSystem:
         if self.battery_system and battery_action != 0:
             self.penaliser.penalise_battery_charging(battery_action)
             remaining_available_power = self.battery_system.charge(available_power, battery_action, self.TIME_INTERVAL)
+
+            if self.battery_system.CHARGING_MODE == 'bounded':
+                self.penaliser.penalise_charging_battery_with_non_existing_power(remaining_available_power)
+                self.penaliser.penalise_battery_capacity_greater_than_100_percent(self.battery_system.current_capacity)
         else:
             remaining_available_power = available_power
 

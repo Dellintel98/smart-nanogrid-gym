@@ -22,8 +22,8 @@ class BatteryEnergyStorageSystem:
         if self.CHARGING_MODE == 'controlled':
             if capacity_available_to_charge > 0:
                 power_available_for_charge = (capacity_available_to_charge * self.max_capacity) / time_interval
-                max_charging_power = min([self.max_charging_power, power_available_for_charge]) * self.charging_efficiency
-                charging_power = battery_action * max_charging_power
+                max_charging_power = min([self.max_charging_power, power_available_for_charge])
+                charging_power = battery_action * max_charging_power * self.charging_efficiency
 
                 remaining_available_power = available_power - charging_power
 
@@ -45,26 +45,40 @@ class BatteryEnergyStorageSystem:
             # Todo: Add penalty for bounded dis/charging
 
             return remaining_available_power
+        else:
+            raise ValueError("Error: Wrong battery charging mode provided!")
 
     def discharge(self, power_demand, battery_action, time_interval):
         capacity_available_to_discharge = self.current_capacity - self.depth_of_discharge
 
-        if capacity_available_to_discharge > 0:
-            power_available_for_discharge = (capacity_available_to_discharge * self.max_capacity) / time_interval
-            max_discharging_power = min([self.max_discharging_power, power_available_for_discharge])
-            discharging_power = battery_action * max_discharging_power
+        if self.CHARGING_MODE == 'controlled':
+            if capacity_available_to_discharge > 0:
+                power_available_for_discharge = (capacity_available_to_discharge * self.max_capacity) / time_interval
+                max_discharging_power = min([self.max_discharging_power, power_available_for_discharge])
+                discharging_power = battery_action * max_discharging_power * self.discharging_efficiency
+
+                remaining_demand = power_demand + discharging_power
+
+                if remaining_demand < 0:
+                    discharging_power = battery_action * power_demand
+                    remaining_demand = 0
+
+                self.current_capacity = self.current_capacity + (discharging_power * time_interval) / self.max_capacity
+
+                return remaining_demand
+            else:
+                return power_demand
+        elif self.CHARGING_MODE == 'bounded':
+            discharging_power = battery_action * self.max_discharging_power * self.discharging_efficiency
+            self.current_capacity = self.current_capacity + (discharging_power * time_interval) / self.max_capacity
 
             remaining_demand = power_demand + discharging_power
-
-            if remaining_demand < 0:
-                discharging_power = battery_action * power_demand
-                remaining_demand = 0
-
-            self.current_capacity = self.current_capacity + (discharging_power * time_interval) / self.max_capacity
+            # Todo: Finish bounded mode and add it for discharging also
+            # Todo: Add penalty for bounded dis/charging
 
             return remaining_demand
         else:
-            return power_demand
+            raise ValueError("Error: Wrong battery discharging mode provided!")
 
     def get_state_of_charge(self):
         return self.current_capacity

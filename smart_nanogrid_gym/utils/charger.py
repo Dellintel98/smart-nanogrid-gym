@@ -85,7 +85,7 @@ class Charger:
         elif self.CHARGING_MODE == 'bounded':
             discharging_power = self.calculate_charging_power(action)
         else:
-            raise ValueError("Error: Wrong charging mode provided!")
+            raise ValueError("Error: Wrong discharging mode provided!")
 
         self.calculate_next_vehicle_state_of_charge(discharging_power, timestep, time_interval)
         return discharging_power
