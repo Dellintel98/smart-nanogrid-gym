@@ -208,7 +208,8 @@ class SmartNanogridEnv(gym.Env):
 
     def __save_prediction_results(self):
         if self.PV_SYSTEM_AVAILABLE_IN_MODEL:
-            available_solar_energy = self.central_management_system.pv_system_manager.get_available_solar_energy().tolist()
+            available_solar_energy = self.central_management_system.pv_system_manager.get_available_solar_energy()
+            available_solar_energy = available_solar_energy.tolist()
         else:
             available_solar_energy = []
 
@@ -256,7 +257,7 @@ class SmartNanogridEnv(gym.Env):
 
         file_name_prefix = f'{self.ALGORITHM_USED}'
         file_name_root = f'{model_variant_name}-{self.CHARGING_MODE}-{self.VEHICLE_UNCHARGED_PENALTY_MODE}'
-        file_name_suffix = f'{self.NUMBER_OF_CHARGERS}-{self.REQUESTED_TIME_INTERVAL}'
+        file_name_suffix = f'{self.NUMBER_OF_CHARGERS}ch-{self.REQUESTED_TIME_INTERVAL}'
         file_name = f'{file_name_prefix}-{file_name_root}-{file_name_suffix}'
 
         savemat(f'{saving_directory_path}{file_name}-prediction_results.mat', {'Prediction_results': prediction_results})

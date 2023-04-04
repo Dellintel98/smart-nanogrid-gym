@@ -86,6 +86,7 @@ class CentralManagementSystem:
 
         if self.battery_system:
             battery_action = actions[-1]
+            battery_action = float(battery_action)
         else:
             battery_action = 0
 
@@ -129,7 +130,7 @@ class CentralManagementSystem:
             'Battery state of charge': battery_soc,
             'Grid energy cost': grid_energy_cost,
             'Battery action': battery_action,
-            'Charger actions': charger_actions,
+            'Charger actions': charger_actions.tolist(),
             'Total charging power': result['Total charging power'],
             'Total discharging power': result['Total discharging power'],
             'Charger power values': result['Charger power values'],
