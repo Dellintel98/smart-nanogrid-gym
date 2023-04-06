@@ -32,10 +32,15 @@ class Charger:
     #     self.occupied = False
 
     def charge_or_discharge_vehicle(self, action, timestep, time_interval):
-        if action >= 0:
+        if action == 0:
+            self.power_value = 0.0
+            breakpoint()
+        elif action > 0:
             self.power_value = self.charge_vehicle(action, timestep, time_interval)
         else:
             self.power_value = self.discharge_vehicle(action, timestep, time_interval)
+
+        self.calculate_next_vehicle_state_of_charge(timestep, time_interval)
 
         return self.power_value
 
@@ -48,7 +53,6 @@ class Charger:
         else:
             raise ValueError("Error: Wrong charging mode provided!")
 
-        self.calculate_next_vehicle_state_of_charge(charging_power, timestep, time_interval)
         return charging_power
 
     def calculate_charging_power(self, action):
@@ -69,8 +73,11 @@ class Charger:
     def calculate_charging_or_discharging_power(self, max_power, action):
         return action * max_power
 
-    def calculate_next_vehicle_state_of_charge(self, power_value, timestep, time_interval):
-        state_of_charge_value_change = (power_value * time_interval) / self.vehicle_capacities[timestep]
+    def calculate_next_vehicle_state_of_charge(self, timestep, time_interval):
+        if self.power_value != 0:
+            state_of_charge_value_change = (self.power_value * time_interval) / self.vehicle_capacities[timestep]
+        else:
+            state_of_charge_value_change = 0.0
         # Todo: Add alpha limit for CC-CV charging switch here
 
         if timestep in self.vehicle_arrivals:
@@ -87,7 +94,6 @@ class Charger:
         else:
             raise ValueError("Error: Wrong discharging mode provided!")
 
-        self.calculate_next_vehicle_state_of_charge(discharging_power, timestep, time_interval)
         return discharging_power
 
     def calculate_max_discharging_power(self, timestep, time_interval):

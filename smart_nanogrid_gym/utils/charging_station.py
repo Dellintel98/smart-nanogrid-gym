@@ -266,7 +266,7 @@ class ChargingStation:
         for index, charger in enumerate(self.chargers):
             action = actions[index]
             # to-do later (maybe): -1=Charger reserved -> lasts for max 15 minutes, 1=Occupied, 0=Empty
-            if charger.occupancy[current_timestep] == 1 and action != 0:
+            if charger.occupancy[current_timestep] == 1:
                 charger_power_values[index] = charger.charge_or_discharge_vehicle(action, current_timestep, time_interval)
             else:
                 charger_power_values[index] = 0

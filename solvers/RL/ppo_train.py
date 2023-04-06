@@ -10,7 +10,7 @@ number_of_chargers = 4
 vehicle_charging_modes = ['controlled', 'bounded']
 # charging modes: controlled [with remaining capacity and soc], bounded [-1, 1]*max_power;
 #        {add later maybe: max_bounded[-22, 22], unbounded[-inf, inf]}
-charging_mode = vehicle_charging_modes[1]
+charging_mode = vehicle_charging_modes[0]
 
 vehicle_uncharged_penalty_modes = ['no_penalty', 'on_departure', 'sparse', 'dense']
 # penalty modes: no_penalty, on_departure, sparse, dense
@@ -73,7 +73,7 @@ env_variants = [
             'time_interval': requested_time_interval
         }}
 ]
-current_env = env_variants[1]
+current_env = env_variants[0]
 current_env_name = current_env['variant_name']
 
 models_dir = f"models/PPO-{current_env_name}-{charging_mode}-{penalty_mode}-{number_of_chargers}ch-{requested_time_interval}"
