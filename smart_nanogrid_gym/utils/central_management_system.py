@@ -16,7 +16,7 @@ class CentralManagementSystem:
         self.EXPERIMENT_LENGTH_IN_DAYS = experiment_length_in_days
         self.NUMBER_OF_CHARGERS = number_of_chargers
 
-        self.battery_system = self.initialise_battery_system(battery_system_available_in_model)
+        self.battery_system = self.initialise_battery_system(battery_system_available_in_model, charging_mode)
         self.pv_system_manager = self.initialise_pv_system(pv_system_available_in_model)
 
         self.vehicle_to_everything = vehicle_to_everything
@@ -30,9 +30,9 @@ class CentralManagementSystem:
 
         self.penaliser = Penaliser()
 
-    def initialise_battery_system(self, battery_system_available_in_model):
+    def initialise_battery_system(self, battery_system_available_in_model, charging_mode):
         if battery_system_available_in_model:
-            return BatteryEnergyStorageSystem(80, 0.5, 44, 44, 0.95, 0.95, 0.15)
+            return BatteryEnergyStorageSystem(charging_mode, 80, 0.5, 44, 44, 0.95, 0.95, 0.15)
         else:
             return None
 
@@ -86,18 +86,18 @@ class CentralManagementSystem:
 
         if self.battery_system:
             battery_action = actions[-1]
+            battery_action = float(battery_action)
         else:
             battery_action = 0
 
-        [total_charging_power, total_discharging_power] = self.charging_station.simulate_vehicle_charging(charger_actions,
-                                                                                                          timestep,
-                                                                                                          self.TIME_INTERVAL)
+        result = self.charging_station.simulate_vehicle_charging(charger_actions, timestep, self.TIME_INTERVAL)
+
         if self.pv_system_manager:
             available_solar_power = self.pv_system_manager.get_available_solar_produced_power_at_timestep_t(timestep)
         else:
             available_solar_power = 0
 
-        total_power = total_charging_power + total_discharging_power
+        total_power = result['Total charging power'] + result['Total discharging power']
         grid_power = self.calculate_grid_power(total_power, available_solar_power, battery_action)
         grid_energy = grid_power * self.TIME_INTERVAL
 
@@ -113,9 +113,11 @@ class CentralManagementSystem:
         total_cost = self.accountant.calculate_total_cost(additional_cost=total_penalty)
 
         if self.battery_system:
-            battery_soc = self.battery_system.current_capacity
+            battery_soc = self.battery_system.current_state_of_charge
+            battery_power_value = self.battery_system.current_power_value
         else:
             battery_soc = 0
+            battery_power_value = 0
 
         return {
             'Total cost': total_cost,
@@ -123,15 +125,19 @@ class CentralManagementSystem:
             'Grid energy': grid_energy,
             'Utilized solar energy': available_solar_power,
             'Insufficiently charged vehicles penalty': self.penaliser.get_insufficiently_charged_vehicles_penalty(),
-            # 'Battery penalty': self.penaliser.battery_penalty,
-            # 'Total penalty': total_penalty,
+            'Battery penalty': self.penaliser.total_battery_penalty,
+            'Total penalty': total_penalty,
             'Battery state of charge': battery_soc,
-            'Grid energy cost': grid_energy_cost
+            'Grid energy cost': grid_energy_cost,
+            'Battery action': battery_action,
+            'Charger actions': charger_actions.tolist(),
+            'Total charging power': result['Total charging power'],
+            'Total discharging power': result['Total discharging power'],
+            'Charger power values': result['Charger power values'],
+            'Battery power value': battery_power_value
         }
 
     def calculate_grid_power(self, power_demand, available_solar_power, battery_action):
-        # if building_in_nanogrid:
-        #     remaining_energy_demand = building_demand + total_power - available_renewable_energy
         remaining_power_demand = power_demand - available_solar_power
 
         if remaining_power_demand == 0:
@@ -148,16 +154,26 @@ class CentralManagementSystem:
 
     def calculate_amount_of_power_supplied_from_grid(self, power_demand, battery_action):
         if self.battery_system and battery_action != 0:
-            self.penaliser.penalise_battery_discharging(battery_action)
+            self.penaliser.penalise_battery_discharging_action(battery_action)
             remaining_power_demand = self.battery_system.discharge(power_demand, battery_action, self.TIME_INTERVAL)
+
+            if self.battery_system.CHARGING_MODE == 'bounded':
+                self.penaliser.penalise_battery_issues(self.battery_system.current_state_of_charge,
+                                                       self.battery_system.depth_of_discharge,
+                                                       remaining_power_demand=remaining_power_demand)
             return remaining_power_demand
         else:
             return power_demand
 
     def calculate_amount_of_power_supplied_to_grid(self, available_power, battery_action):
         if self.battery_system and battery_action != 0:
-            self.penaliser.penalise_battery_charging(battery_action)
+            self.penaliser.penalise_battery_charging_action(battery_action)
             remaining_available_power = self.battery_system.charge(available_power, battery_action, self.TIME_INTERVAL)
+
+            if self.battery_system.CHARGING_MODE == 'bounded':
+                self.penaliser.penalise_battery_issues(self.battery_system.current_state_of_charge,
+                                                       self.battery_system.depth_of_discharge,
+                                                       remaining_available_power_after_charging=remaining_available_power)
         else:
             remaining_available_power = available_power
 

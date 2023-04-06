@@ -101,7 +101,6 @@ class ChargingStation:
     def load_initial_values(self):
         self.clear_initialisation_variables()
 
-        # initial_values = loadmat(data_files_directory_path + '\\initial_values.mat')
         with open(data_files_directory_path + "\\initial_values.json", "r") as fp:
             initials = json.load(fp)
 
@@ -168,16 +167,8 @@ class ChargingStation:
         with open(data_files_directory_path + "\\initial_values.json", "w") as fp:
             json.dump(generated_initial_values_json, fp, indent=4)
 
-        # Save also as .mat file for easier inspection
-        # Todo: Change mat to excel
-        savemat(data_files_directory_path + '\\initial_values.mat', generated_initial_values)
-
-    def save_initial_values_to_mat_file(self, path, filename_prefix):
-        prefix = f'\\{filename_prefix}-' if filename_prefix else ''
-        savemat(path + f'\\{prefix}initial_values.mat', self.generated_initial_values)
-
-    def save_initial_values_to_json_file(self, path, filename_prefix):
-        prefix = f'\\{filename_prefix}-' if filename_prefix else ''
+    def save_initial_values_to_json_file(self, path, filename):
+        prefix = f'\\{filename}-' if filename else ''
         with open(path + f'\\{prefix}initial_values.json', "w") as fp:
             json.dump(self.generated_initial_values_json, fp, indent=4)
 
@@ -283,7 +274,11 @@ class ChargingStation:
         total_discharging_power = charger_power_values[charger_power_values < 0].sum()
         total_charging_power = charger_power_values[charger_power_values > 0].sum()
 
-        return total_charging_power, total_discharging_power
+        return {
+            'Total charging power': total_charging_power,
+            'Total discharging power': total_discharging_power,
+            'Charger power values': charger_power_values.tolist()
+        }
 
     def get_vehicles_state_of_charge(self):
         vehicle_state_of_charge = vstack([charger.vehicle_state_of_charge for charger in self.chargers])

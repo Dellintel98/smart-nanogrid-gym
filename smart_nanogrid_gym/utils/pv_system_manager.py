@@ -32,7 +32,7 @@ class PVSystemManager:
         return irradiance_data['irradiance']
 
     def calculate_solar_irradiance_mean(self, irradiance_forecast, padded_experiment_length, time_interval):
-        timestep_in_minutes = 60 * time_interval
+        timestep_in_minutes = int(60 * time_interval)
         solar_irradiance = zeros([1, padded_experiment_length])
         experiment_length_in_minutes = timestep_in_minutes * padded_experiment_length
 

@@ -16,8 +16,8 @@ from ..utils.config import data_files_directory_path, solvers_files_directory_pa
 # Todo: Feat: Set possibility of using different filetypes for saving and loading only for predictions
 
 # Todo: Feat: Add stohasticity in vehicle departures
-# Todo: Feat: Add model training visualisation using pygame
-# Todo: Feat: Add possibility for Electric Vehicles to have different battery capacities
+# Todo: Feat: Add model training visualisation using plotly or matplotlib
+
 # Todo: Feat: Add penalty for discharging vehicles (v2v) if it happens except for steps in which some other vehicle is
 #             departing or plans to depart in next n steps
 # Todo: Feat: Add possibility to load model specifications from json or csv..., e.g. load pricing model for energy
@@ -56,16 +56,21 @@ class SmartNanogridEnv(gym.Env):
                                                                  self.NUMBER_OF_DAYS_TO_PREDICT, self.TIME_INTERVAL,
                                                                  self.NUMBER_OF_CHARGERS,
                                                                  enable_different_vehicle_battery_capacities,
-                                                                 enable_requested_state_of_charge)
+                                                                 enable_requested_state_of_charge,
+                                                                 self.CHARGING_MODE, self.VEHICLE_UNCHARGED_PENALTY_MODE)
 
         self.timestep = None
         self.info = None
 
         self.grid_energy_per_timestep, self.solar_energy_utilization_per_timestep = None, None
         self.total_cost_per_timestep, self.vehicle_penalty_per_timestep = None, None
-        # self.total_penalty_per_timestep, self.battery_penalty_per_timestep = None, None
+        self.total_penalty_per_timestep, self.battery_penalty_per_timestep = None, None
         self.battery_per_timestep, self.grid_energy_cost_per_timestep = None, None
         self.grid_power_per_timestep = None
+
+        self.battery_action_per_timestep, self.charger_actions_per_timestep = None, None
+        self.total_charging_power_per_timestep, self.total_discharging_power_per_timestep = None, None
+        self.charger_power_values_per_timestep, self.battery_power_value_per_timestep = None, None
 
         self.simulated_single_day = False
 
@@ -109,15 +114,15 @@ class SmartNanogridEnv(gym.Env):
         # Todo: Feat: Add security check for value provided as an argument
         if requested_time_interval:
             if 'h' in requested_time_interval:
-                time_interval = int(requested_time_interval.replace('h', ''))
+                time_interval = float(requested_time_interval.replace('h', ''))
                 return time_interval
             elif 'min' in requested_time_interval:
-                time_interval = int(requested_time_interval.replace('min', ''))
+                time_interval = float(requested_time_interval.replace('min', '')) / 60.0
                 return time_interval
             else:
                 raise ValueError('Wrong time interval was provided')
         else:
-            return int(1)
+            return float(1)
 
     def step(self, actions):
         results = self.central_management_system.simulate(self.timestep, actions)
@@ -127,10 +132,16 @@ class SmartNanogridEnv(gym.Env):
         self.grid_energy_per_timestep.append(results['Grid energy'])
         self.solar_energy_utilization_per_timestep.append(results['Utilized solar energy'])
         self.vehicle_penalty_per_timestep.append(results['Insufficiently charged vehicles penalty'])
-        # self.battery_penalty_per_timestep.append(results['Battery penalty'])
-        # self.total_penalty_per_timestep.append(results['Total penalty'])
+        self.battery_penalty_per_timestep.append(results['Battery penalty'])
+        self.total_penalty_per_timestep.append(results['Total penalty'])
         self.battery_per_timestep.append(results['Battery state of charge'])
-        self.grid_energy_cost_per_timestep.append(results['Total cost'])
+        self.grid_energy_cost_per_timestep.append(results['Grid energy cost'])
+        self.battery_action_per_timestep.append(results['Battery action'])
+        self.charger_actions_per_timestep.append(results['Charger actions'])
+        self.total_charging_power_per_timestep.append(results['Total charging power'])
+        self.total_discharging_power_per_timestep.append(results['Total discharging power'])
+        self.charger_power_values_per_timestep.append(results['Charger power values'])
+        self.battery_power_value_per_timestep.append(results['Battery power value'])
 
         observations = self.__get_observations()
         self.timestep = self.timestep + 1
@@ -190,14 +201,15 @@ class SmartNanogridEnv(gym.Env):
         return observations
 
     def __check_is_single_day_simulated(self):
-        if self.timestep == (24 / self.TIME_INTERVAL):
+        if self.timestep == (24.0 / self.TIME_INTERVAL):
             return True
         else:
             return False
 
     def __save_prediction_results(self):
         if self.PV_SYSTEM_AVAILABLE_IN_MODEL:
-            available_solar_energy = self.central_management_system.pv_system_manager.get_available_solar_energy().tolist()
+            available_solar_energy = self.central_management_system.pv_system_manager.get_available_solar_energy()
+            available_solar_energy = available_solar_energy.tolist()
         else:
             available_solar_energy = []
 
@@ -206,14 +218,19 @@ class SmartNanogridEnv(gym.Env):
             'Grid_power': self.grid_power_per_timestep,
             'Grid_energy': self.grid_energy_per_timestep,
             'Utilized_solar_energy': self.solar_energy_utilization_per_timestep,
-            # 'Vehicle_penalties': self.vehicle_penalty_per_timestep,
-            # 'Battery_penalties': self.battery_penalty_per_timestep,
-            # 'Total_penalties': self.total_penalty_per_timestep,
-            'Penalties': self.vehicle_penalty_per_timestep,
+            'Vehicle_penalties': self.vehicle_penalty_per_timestep,
+            'Battery_penalties': self.battery_penalty_per_timestep,
+            'Total_penalties': self.total_penalty_per_timestep,
             'Available_solar_energy': available_solar_energy,
             'Total_cost': self.total_cost_per_timestep,
             'Battery_state_of_charge': self.battery_per_timestep,
-            'Grid_energy_cost': self.grid_energy_cost_per_timestep
+            'Grid_energy_cost': self.grid_energy_cost_per_timestep,
+            'Battery_action': self.battery_action_per_timestep,
+            'Charger_actions': self.charger_actions_per_timestep,
+            'Total_charging_power': self.total_charging_power_per_timestep,
+            'Total_discharging_power': self.total_discharging_power_per_timestep,
+            'Charger_power_values': self.charger_power_values_per_timestep,
+            'Battery_power_value': self.battery_power_value_per_timestep
         }
         # Todo: Change mat to excel
         savemat(data_files_directory_path + '\\last_prediction_results.mat', {'Prediction_results': prediction_results})
@@ -238,36 +255,16 @@ class SmartNanogridEnv(gym.Env):
 
         saving_directory_path = solvers_files_directory_path + '\\RL\\' + file_destination + '\\'
 
-        file_name_prefix = f'{self.ALGORITHM_USED}-{model_variant_name}-{self.REQUESTED_TIME_INTERVAL}-prediction_results-simpler-4-departure'
+        file_name_prefix = f'{self.ALGORITHM_USED}'
+        file_name_root = f'{model_variant_name}-{self.CHARGING_MODE}-{self.VEHICLE_UNCHARGED_PENALTY_MODE}'
+        file_name_suffix = f'{self.NUMBER_OF_CHARGERS}ch-{self.REQUESTED_TIME_INTERVAL}'
+        file_name = f'{file_name_prefix}-{file_name_root}-{file_name_suffix}'
 
-        # file_name = f'{self.ALGORITHM_USED}-{model_variant_name}-{self.REQUESTED_TIME_INTERVAL}-prediction_results-dense-reward.mat'
-        # file_name = f'{self.ALGORITHM_USED}-{model_variant_name}-{self.REQUESTED_TIME_INTERVAL}-prediction_results-sparse-reward.mat'
-        # file_name = f'{self.ALGORITHM_USED}-{model_variant_name}-{self.REQUESTED_TIME_INTERVAL}-prediction_results-no-reward.mat'
-        # file_name = f'{self.ALGORITHM_USED}-{model_variant_name}-{self.REQUESTED_TIME_INTERVAL}-prediction_results-1.mat'
-        # file_name = f'{self.ALGORITHM_USED}-{model_variant_name}-{self.REQUESTED_TIME_INTERVAL}-prediction_results-notebook'
-        file_name = f'{self.ALGORITHM_USED}-{model_variant_name}-{self.REQUESTED_TIME_INTERVAL}-prediction_results-simpler-4-departure'
-        # file_name = f'{self.ALGORITHM_USED}-{model_variant_name}-{self.REQUESTED_TIME_INTERVAL}-prediction_results-simpler.mat'
-        savemat(saving_directory_path + file_name + '.mat', {'Prediction_results': prediction_results})
-
-        with open(saving_directory_path + file_name + ".json", "w") as fp:
+        with open(saving_directory_path + file_name + "-prediction_results.json", "w") as fp:
             json.dump(prediction_results, fp, indent=4)
 
         self.central_management_system.charging_station.save_initial_values_to_json_file(saving_directory_path,
-                                                                                         filename_prefix=f'{self.ALGORITHM_USED}-'
-                                                                                                         f'{model_variant_name}-'
-                                                                                                         f'{self.REQUESTED_TIME_INTERVAL}'
-                                                                                                         f'-simpler-4-departure')
-                                                                                                         # f'-notebook')
-
-        self.central_management_system.charging_station.save_initial_values_to_mat_file(saving_directory_path,
-                                                                                        filename_prefix=f'{self.ALGORITHM_USED}-'
-                                                                                                        f'{model_variant_name}-'
-                                                                                                        f'{self.REQUESTED_TIME_INTERVAL}'
-                                                                                                        f'-simpler-4-departure')
-                                                                                                        # f'-notebook')
-                                                                                                        # f'-no-reward')
-                                                                                                        # f'-sparse-reward')
-                                                                                                        # f'-dense-reward')
+                                                                                         filename=file_name)
 
     def reset(self, generate_new_initial_values=True, algorithm_used='', environment_mode='', **kwargs):
         self.timestep = 0
@@ -277,8 +274,16 @@ class SmartNanogridEnv(gym.Env):
         self.grid_energy_per_timestep = []
         self.solar_energy_utilization_per_timestep = []
         self.vehicle_penalty_per_timestep = []
+        self.battery_penalty_per_timestep = []
+        self.total_penalty_per_timestep = []
         self.battery_per_timestep = []
         self.grid_energy_cost_per_timestep = []
+        self.battery_action_per_timestep = []
+        self.charger_actions_per_timestep = []
+        self.total_charging_power_per_timestep = []
+        self.total_discharging_power_per_timestep = []
+        self.charger_power_values_per_timestep = []
+        self.battery_power_value_per_timestep = []
 
         self.ALGORITHM_USED = algorithm_used if algorithm_used else self.ALGORITHM_USED
         self.ENVIRONMENT_MODE = environment_mode if environment_mode else self.ENVIRONMENT_MODE
