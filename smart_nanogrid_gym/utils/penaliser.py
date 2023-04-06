@@ -1,15 +1,19 @@
 class Penaliser:
     def __init__(self):
+        self.REWARD_FOR_ALLOWED_VALUE_OF_STATE_OF_CHARGE = 4
+
         self.insufficiently_charged_vehicles_penalty = 0
         self.vehicle_state_of_charge_above_1_penalty = 0
+        self.vehicle_reward = 0
         self.total_vehicle_penalty = 0
 
         self.battery_charging_action_penalty = 0
         self.battery_discharging_action_penalty = 0
-        self.battery_capacity_below_dod_penalty = 0
-        self.battery_capacity_above_100_percent_penalty = 0
+        self.battery_state_of_charge_below_dod_penalty = 0
+        self.battery_state_of_charge_above_1_penalty = 0
         self.battery_charging_power_exceeding_available_power_penalty = 0
         self.discharged_battery_power_exceeding_power_demand_penalty = 0
+        self.battery_reward = 0
         self.total_battery_penalty = 0
 
         self.total_penalty = 0
@@ -53,16 +57,40 @@ class Penaliser:
         else:
             self.vehicle_state_of_charge_above_1_penalty = 0
 
-    def penalise_battery_charging(self, positive_battery_action):
+    def penalise_battery_issues(self, current_state_of_charge, depth_of_discharge, remaining_power_demand=0,
+                                remaining_available_power_after_charging=0):
+        self.penalise_state_of_charge_outside_bounds(current_state_of_charge, depth_of_discharge)
+
+        if remaining_available_power_after_charging:
+            self.penalise_charging_battery_with_non_existing_power(remaining_available_power_after_charging)
+
+        if remaining_power_demand:
+            self.penalise_discharging_battery_with_power_greater_than_power_demand(remaining_power_demand)
+
+    def penalise_state_of_charge_outside_bounds(self, current_state_of_charge, depth_of_discharge):
+        if depth_of_discharge <= current_state_of_charge <= 1.0:
+            self.battery_reward = self.REWARD_FOR_ALLOWED_VALUE_OF_STATE_OF_CHARGE
+            self.battery_state_of_charge_below_dod_penalty = 0
+            self.battery_state_of_charge_above_1_penalty = 0
+        elif current_state_of_charge < depth_of_discharge:
+            self.battery_state_of_charge_below_dod_penalty = ((depth_of_discharge - current_state_of_charge) * 5) ** 2
+            self.battery_state_of_charge_above_1_penalty = 0
+            self.battery_reward = 0
+        elif current_state_of_charge > 1.0:
+            self.battery_state_of_charge_above_1_penalty = (current_state_of_charge * 5) ** 2
+            self.battery_state_of_charge_below_dod_penalty = 0
+            self.battery_reward = 0
+
+    def penalise_battery_charging_action(self, positive_battery_action):
         if positive_battery_action < 0:
-            self.battery_charging_action_penalty = -positive_battery_action
+            self.battery_charging_action_penalty = (positive_battery_action * 3) ** 2
         else:
             self.battery_charging_action_penalty = 0
             # Todo: Feat: Add battery_penalty = battery_action or different penalising strategy
 
-    def penalise_battery_discharging(self, negative_battery_action):
+    def penalise_battery_discharging_action(self, negative_battery_action):
         if negative_battery_action > 0:
-            self.battery_discharging_action_penalty = negative_battery_action
+            self.battery_discharging_action_penalty = (negative_battery_action * 3) ** 2
         else:
             self.battery_discharging_action_penalty = 0
             # Todo: Feat: Add battery_penalty = battery_action or different penalising strategy
@@ -81,36 +109,26 @@ class Penaliser:
 
     def penalise_discharging_battery_with_power_greater_than_power_demand(self, remaining_power_demand):
         if remaining_power_demand < 0:
-            self.discharged_battery_power_exceeding_power_demand_penalty = -remaining_power_demand
+            self.discharged_battery_power_exceeding_power_demand_penalty = (remaining_power_demand * 5) ** 2
         else:
             self.discharged_battery_power_exceeding_power_demand_penalty = 0
 
-    def penalise_battery_capacity_below_depth_of_discharge(self, current_capacity, depth_of_discharge):
-        if current_capacity < depth_of_discharge:
-            self.battery_capacity_below_dod_penalty = depth_of_discharge - current_capacity
-        else:
-            self.battery_capacity_below_dod_penalty = 0
-
-    def penalise_charging_battery_with_non_existing_power(self, remaining_available_power_after_charging_battery):
-        if remaining_available_power_after_charging_battery < 0:
-            self.battery_charging_power_exceeding_available_power_penalty = -remaining_available_power_after_charging_battery
+    def penalise_charging_battery_with_non_existing_power(self, remaining_available_power):
+        if remaining_available_power < 0:
+            self.battery_charging_power_exceeding_available_power_penalty = (remaining_available_power * 2) ** 2
         else:
             self.battery_charging_power_exceeding_available_power_penalty = 0
 
-    def penalise_battery_capacity_greater_than_100_percent(self, current_capacity):
-        if current_capacity > 1.0:
-            self.battery_capacity_above_100_percent_penalty = current_capacity
-        else:
-            self.battery_capacity_above_100_percent_penalty = 0
-
     def calculate_total_battery_penalty(self):
-        self.total_battery_penalty = self.battery_charging_action_penalty + \
-                                     self.battery_discharging_action_penalty + \
-                                     self.battery_capacity_below_dod_penalty + \
-                                     self.battery_capacity_above_100_percent_penalty + \
-                                     self.battery_charging_power_exceeding_available_power_penalty + \
-                                     self.discharged_battery_power_exceeding_power_demand_penalty
+        self.total_battery_penalty = self.battery_charging_action_penalty\
+                                     + self.battery_discharging_action_penalty\
+                                     + self.battery_state_of_charge_below_dod_penalty\
+                                     + self.battery_state_of_charge_above_1_penalty\
+                                     + self.battery_charging_power_exceeding_available_power_penalty\
+                                     + self.discharged_battery_power_exceeding_power_demand_penalty\
+                                     - self.battery_reward
 
     def calculate_total_vehicle_penalty(self):
-        self.total_vehicle_penalty = self.insufficiently_charged_vehicles_penalty + \
-                                     self.vehicle_state_of_charge_above_1_penalty
+        self.total_vehicle_penalty = self.insufficiently_charged_vehicles_penalty\
+                                     + self.vehicle_state_of_charge_above_1_penalty\
+                                     - self.vehicle_reward

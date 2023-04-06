@@ -113,7 +113,7 @@ class CentralManagementSystem:
         total_cost = self.accountant.calculate_total_cost(additional_cost=total_penalty)
 
         if self.battery_system:
-            battery_soc = self.battery_system.current_capacity
+            battery_soc = self.battery_system.current_state_of_charge
             battery_power_value = self.battery_system.current_power_value
         else:
             battery_soc = 0
@@ -154,25 +154,26 @@ class CentralManagementSystem:
 
     def calculate_amount_of_power_supplied_from_grid(self, power_demand, battery_action):
         if self.battery_system and battery_action != 0:
-            self.penaliser.penalise_battery_discharging(battery_action)
+            self.penaliser.penalise_battery_discharging_action(battery_action)
             remaining_power_demand = self.battery_system.discharge(power_demand, battery_action, self.TIME_INTERVAL)
 
             if self.battery_system.CHARGING_MODE == 'bounded':
-                self.penaliser.penalise_discharging_battery_with_power_greater_than_power_demand(remaining_power_demand)
-                self.penaliser.penalise_battery_capacity_below_depth_of_discharge(self.battery_system.current_capacity,
-                                                                                  self.battery_system.depth_of_discharge)
+                self.penaliser.penalise_battery_issues(self.battery_system.current_state_of_charge,
+                                                       self.battery_system.depth_of_discharge,
+                                                       remaining_power_demand=remaining_power_demand)
             return remaining_power_demand
         else:
             return power_demand
 
     def calculate_amount_of_power_supplied_to_grid(self, available_power, battery_action):
         if self.battery_system and battery_action != 0:
-            self.penaliser.penalise_battery_charging(battery_action)
+            self.penaliser.penalise_battery_charging_action(battery_action)
             remaining_available_power = self.battery_system.charge(available_power, battery_action, self.TIME_INTERVAL)
 
             if self.battery_system.CHARGING_MODE == 'bounded':
-                self.penaliser.penalise_charging_battery_with_non_existing_power(remaining_available_power)
-                self.penaliser.penalise_battery_capacity_greater_than_100_percent(self.battery_system.current_capacity)
+                self.penaliser.penalise_battery_issues(self.battery_system.current_state_of_charge,
+                                                       self.battery_system.depth_of_discharge,
+                                                       remaining_available_power_after_charging=remaining_available_power)
         else:
             remaining_available_power = available_power
 
