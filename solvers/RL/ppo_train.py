@@ -1,23 +1,20 @@
 import smart_nanogrid_gym
-import argparse
 
 import gym
 import os
 
-from stable_baselines3.common.noise import NormalActionNoise, OrnsteinUhlenbeckActionNoise
 from stable_baselines3 import PPO
-from stable_baselines3.common.evaluation import evaluate_policy
 import time
 
-number_of_chargers = 1
+number_of_chargers = 4
 vehicle_charging_modes = ['controlled', 'bounded']
 # charging modes: controlled [with remaining capacity and soc], bounded [-1, 1]*max_power;
 #        {add later maybe: max_bounded[-22, 22], unbounded[-inf, inf]}
-charging_mode = vehicle_charging_modes[0]
+charging_mode = vehicle_charging_modes[1]
 
 vehicle_uncharged_penalty_modes = ['no_penalty', 'on_departure', 'sparse', 'dense']
 # penalty modes: no_penalty, on_departure, sparse, dense
-penalty_mode = vehicle_uncharged_penalty_modes[0]
+penalty_mode = vehicle_uncharged_penalty_modes[3]
 
 time_intervals = ['15min', '30min', '45min', '1h', '2h']
 requested_time_interval = time_intervals[3]
@@ -76,11 +73,11 @@ env_variants = [
             'time_interval': requested_time_interval
         }}
 ]
-current_env = env_variants[0]
+current_env = env_variants[1]
 current_env_name = current_env['variant_name']
 
-models_dir = f"models/PPO-{current_env_name}-{charging_mode}-{penalty_mode}-{number_of_chargers}-{requested_time_interval}"
-logdir = f"logs/PPO-{current_env_name}-{charging_mode}-{penalty_mode}-{number_of_chargers}-{requested_time_interval}"
+models_dir = f"models/PPO-{current_env_name}-{charging_mode}-{penalty_mode}-{number_of_chargers}ch-{requested_time_interval}"
+logdir = f"logs/PPO-{current_env_name}-{charging_mode}-{penalty_mode}-{number_of_chargers}ch-{requested_time_interval}"
 
 if not os.path.exists(models_dir):
     os.makedirs(models_dir)
