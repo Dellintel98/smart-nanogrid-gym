@@ -232,8 +232,9 @@ class SmartNanogridEnv(gym.Env):
             'Charger_power_values': self.charger_power_values_per_timestep,
             'Battery_power_value': self.battery_power_value_per_timestep
         }
-        # Todo: Change mat to excel
-        savemat(data_files_directory_path + '\\last_prediction_results.mat', {'Prediction_results': prediction_results})
+
+        with open(data_files_directory_path + "prediction_results.json", "w") as fp:
+            json.dump(prediction_results, fp, indent=4)
 
         if self.BATTERY_SYSTEM_AVAILABLE_IN_MODEL and self.PV_SYSTEM_AVAILABLE_IN_MODEL and self.VEHICLE_TO_EVERYTHING:
             model_variant_name = 'v2x-b-pv'
