@@ -39,3 +39,4 @@ fabric.properties
 smart_nanogrid_gym.egg-info/
 venv/
 .ipynb_checkpoints/
+__pycache__/
