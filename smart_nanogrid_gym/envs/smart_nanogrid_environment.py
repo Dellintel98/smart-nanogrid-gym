@@ -16,8 +16,8 @@ from ..utils.config import data_files_directory_path, solvers_files_directory_pa
 # Todo: Feat: Set possibility of using different filetypes for saving and loading only for predictions
 
 # Todo: Feat: Add stohasticity in vehicle departures
-# Todo: Feat: Add model training visualisation using pygame
-# Todo: Feat: Add possibility for Electric Vehicles to have different battery capacities
+# Todo: Feat: Add model training visualisation using plotly or matplotlib
+
 # Todo: Feat: Add penalty for discharging vehicles (v2v) if it happens except for steps in which some other vehicle is
 #             departing or plans to depart in next n steps
 # Todo: Feat: Add possibility to load model specifications from json or csv..., e.g. load pricing model for energy
@@ -260,16 +260,11 @@ class SmartNanogridEnv(gym.Env):
         file_name_suffix = f'{self.NUMBER_OF_CHARGERS}ch-{self.REQUESTED_TIME_INTERVAL}'
         file_name = f'{file_name_prefix}-{file_name_root}-{file_name_suffix}'
 
-        savemat(f'{saving_directory_path}{file_name}-prediction_results.mat', {'Prediction_results': prediction_results})
-
         with open(saving_directory_path + file_name + "-prediction_results.json", "w") as fp:
             json.dump(prediction_results, fp, indent=4)
 
         self.central_management_system.charging_station.save_initial_values_to_json_file(saving_directory_path,
                                                                                          filename=file_name)
-
-        self.central_management_system.charging_station.save_initial_values_to_mat_file(saving_directory_path,
-                                                                                        filename=file_name)
 
     def reset(self, generate_new_initial_values=True, algorithm_used='', environment_mode='', **kwargs):
         self.timestep = 0

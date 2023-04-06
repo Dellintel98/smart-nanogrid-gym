@@ -101,7 +101,6 @@ class ChargingStation:
     def load_initial_values(self):
         self.clear_initialisation_variables()
 
-        # initial_values = loadmat(data_files_directory_path + '\\initial_values.mat')
         with open(data_files_directory_path + "\\initial_values.json", "r") as fp:
             initials = json.load(fp)
 
@@ -167,14 +166,6 @@ class ChargingStation:
 
         with open(data_files_directory_path + "\\initial_values.json", "w") as fp:
             json.dump(generated_initial_values_json, fp, indent=4)
-
-        # Save also as .mat file for easier inspection
-        # Todo: Change mat to excel
-        savemat(data_files_directory_path + '\\initial_values.mat', generated_initial_values)
-
-    def save_initial_values_to_mat_file(self, path, filename):
-        prefix = f'\\{filename}-' if filename else ''
-        savemat(path + f'\\{prefix}initial_values.mat', self.generated_initial_values)
 
     def save_initial_values_to_json_file(self, path, filename):
         prefix = f'\\{filename}-' if filename else ''
