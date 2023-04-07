@@ -140,45 +140,26 @@ class CentralManagementSystem:
     def calculate_grid_power(self, power_demand, available_solar_power, battery_action):
         remaining_power_demand = power_demand - available_solar_power
 
-        if remaining_power_demand == 0:
-            return 0
-        elif remaining_power_demand > 0:
-            power_from_grid = self.calculate_amount_of_power_supplied_from_grid(remaining_power_demand, battery_action)
-            return power_from_grid
-        else:
-            available_power = available_solar_power - power_demand
-            power_to_grid = self.calculate_amount_of_power_supplied_to_grid(available_power, battery_action)
-            if power_to_grid != 0:
-                breakpoint()
-            return power_to_grid
+        if self.battery_system:
+            power_demand_before_taking_action = remaining_power_demand
+            # if self.battery_system.CHARGING_MODE == 'bounded':
+            # if self.battery_system.CHARGING_MODE == 'controlled':
+            # remaining_power_demand=remaining_power_demand
+            # remaining_available_power_after_charging=remaining_available_power
+            remaining_power_demand = self.battery_system.charge_or_discharge(battery_action,
+                                                                             remaining_power_demand,
+                                                                             self.TIME_INTERVAL)
+            self.penaliser.penalise_battery_issues(battery_action,
+                                                   self.battery_system.current_state_of_charge,
+                                                   self.battery_system.depth_of_discharge,
+                                                   power_demand_before_taking_action,
+                                                   remaining_power_demand)
 
-    def calculate_amount_of_power_supplied_from_grid(self, power_demand, battery_action):
-        if self.battery_system and battery_action != 0:
-            self.penaliser.penalise_battery_discharging_action(battery_action)
-            remaining_power_demand = self.battery_system.discharge(power_demand, battery_action, self.TIME_INTERVAL)
-
-            if self.battery_system.CHARGING_MODE == 'bounded':
-                self.penaliser.penalise_battery_issues(self.battery_system.current_state_of_charge,
-                                                       self.battery_system.depth_of_discharge,
-                                                       remaining_power_demand=remaining_power_demand)
+        if remaining_power_demand >= 0:
             return remaining_power_demand
         else:
-            return power_demand
-
-    def calculate_amount_of_power_supplied_to_grid(self, available_power, battery_action):
-        if self.battery_system and battery_action != 0:
-            self.penaliser.penalise_battery_charging_action(battery_action)
-            remaining_available_power = self.battery_system.charge(available_power, battery_action, self.TIME_INTERVAL)
-
-            if self.battery_system.CHARGING_MODE == 'bounded':
-                self.penaliser.penalise_battery_issues(self.battery_system.current_state_of_charge,
-                                                       self.battery_system.depth_of_discharge,
-                                                       remaining_available_power_after_charging=remaining_available_power)
-        else:
-            remaining_available_power = available_power
-
-        if self.vehicle_to_everything:
-            return -remaining_available_power
-        else:
-            # Todo: Feat: Add penalty for wasted energy/power -> wasted_power = (+||-???)remaining_available_power
-            return 0
+            if self.vehicle_to_everything:
+                return -remaining_power_demand
+            else:
+                # Todo: After training the model with changed code, check if this happens because of discharging BESS
+                return remaining_power_demand

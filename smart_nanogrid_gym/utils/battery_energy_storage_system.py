@@ -15,7 +15,17 @@ class BatteryEnergyStorageSystem:
         self.max_charging_power: int = max_charging_power
         self.max_discharging_power: int = max_discharging_power
         self.depth_of_discharge: float = depth_of_discharge
-        self.current_power_value = 0
+        self.current_power_value: float = 0.0
+
+    def charge_or_discharge(self, action, power_demand, time_interval):
+        if action == 0:
+            self.current_power_value = 0.0
+        elif action > 0:
+            power_demand = self.charge(power_demand, action, time_interval)
+        else:
+            power_demand = self.discharge(power_demand, action, time_interval)
+
+        return power_demand
 
     def charge(self, available_power, battery_action, time_interval):
         capacity_available_to_charge = 1 - self.current_state_of_charge

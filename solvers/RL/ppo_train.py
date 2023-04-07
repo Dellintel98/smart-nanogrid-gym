@@ -73,7 +73,7 @@ env_variants = [
             'time_interval': requested_time_interval
         }}
 ]
-current_env = env_variants[0]
+current_env = env_variants[1]
 current_env_name = current_env['variant_name']
 
 models_dir = f"models/PPO-{current_env_name}-{charging_mode}-{penalty_mode}-{number_of_chargers}ch-{requested_time_interval}"

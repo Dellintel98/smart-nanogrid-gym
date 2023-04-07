@@ -34,7 +34,6 @@ class Charger:
     def charge_or_discharge_vehicle(self, action, timestep, time_interval):
         if action == 0:
             self.power_value = 0.0
-            breakpoint()
         elif action > 0:
             self.power_value = self.charge_vehicle(action, timestep, time_interval)
         else:
