@@ -21,58 +21,59 @@ class BatteryEnergyStorageSystem:
         if action == 0:
             self.current_power_value = 0.0
         elif action > 0:
-            power_demand = self.charge(power_demand, action, time_interval)
+            available_power_for_charging = -power_demand
+            power_demand = self.charge(available_power_for_charging, action, time_interval)
         else:
             power_demand = self.discharge(power_demand, action, time_interval)
 
         return power_demand
 
-    def charge(self, available_power, battery_action, time_interval):
+    def charge(self, available_power, positive_action, time_interval):
         capacity_available_to_charge = 1 - self.current_state_of_charge
 
         if self.CHARGING_MODE == 'controlled':
             if capacity_available_to_charge > 0:
                 power_available_for_charge = (capacity_available_to_charge * self.max_capacity) / time_interval
                 max_charging_power = min([self.max_charging_power, power_available_for_charge])
-                charging_power = battery_action * max_charging_power * self.charging_efficiency
+                charging_power = positive_action * max_charging_power * self.charging_efficiency
 
                 remaining_available_power = available_power - charging_power
 
                 if remaining_available_power < 0:
-                    charging_power = battery_action * available_power
-                    remaining_available_power = 0
+                    charging_power = positive_action * available_power
+                    remaining_available_power = 0.0
 
                 self.current_power_value = charging_power
                 self.current_state_of_charge = self.current_state_of_charge + (charging_power * time_interval) / self.max_capacity
 
-                return remaining_available_power
+                return -remaining_available_power
             else:
-                self.current_power_value = 0
-                return available_power
+                self.current_power_value = 0.0
+                return -available_power
         elif self.CHARGING_MODE == 'bounded':
-            charging_power = battery_action * self.max_charging_power * self.charging_efficiency
+            charging_power = positive_action * self.max_charging_power * self.charging_efficiency
             self.current_state_of_charge = self.current_state_of_charge + (charging_power * time_interval) / self.max_capacity
             self.current_power_value = charging_power
 
             remaining_available_power = available_power - charging_power
 
-            return remaining_available_power
+            return -remaining_available_power
         else:
             raise ValueError("Error: Wrong battery charging mode provided!")
 
-    def discharge(self, power_demand, battery_action, time_interval):
+    def discharge(self, power_demand, negative_action, time_interval):
         capacity_available_to_discharge = self.current_state_of_charge - self.depth_of_discharge
 
         if self.CHARGING_MODE == 'controlled':
             if capacity_available_to_discharge > 0:
                 power_available_for_discharge = (capacity_available_to_discharge * self.max_capacity) / time_interval
                 max_discharging_power = min([self.max_discharging_power, power_available_for_discharge])
-                discharging_power = battery_action * max_discharging_power * self.discharging_efficiency
+                discharging_power = negative_action * max_discharging_power * self.discharging_efficiency
 
                 remaining_demand = power_demand + discharging_power
 
                 if remaining_demand < 0:
-                    discharging_power = battery_action * power_demand
+                    discharging_power = negative_action * power_demand
                     remaining_demand = 0
 
                 self.current_power_value = discharging_power
@@ -83,7 +84,7 @@ class BatteryEnergyStorageSystem:
                 self.current_power_value = 0
                 return power_demand
         elif self.CHARGING_MODE == 'bounded':
-            discharging_power = battery_action * self.max_discharging_power * self.discharging_efficiency
+            discharging_power = negative_action * self.max_discharging_power * self.discharging_efficiency
             self.current_state_of_charge = self.current_state_of_charge + (discharging_power * time_interval) / self.max_capacity
             self.current_power_value = discharging_power
 
