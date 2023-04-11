@@ -138,28 +138,30 @@ class CentralManagementSystem:
         }
 
     def calculate_grid_power(self, power_demand, available_solar_power, battery_action):
+        if power_demand < 0 and not self.vehicle_to_everything:
+            # Todo: Add penalty for this, because this is unrealistic behaviour
+            #       Add this only after debugging with breakpoint
+            breakpoint()
+            penalty = 0
+        elif power_demand < 0 and self.vehicle_to_everything:
+            # Todo: Add penalty for this, because until building is added to model, this is unwanted behaviour,
+            #       i.e. until building is included, Total discharging power provided from EVs cannot be greater
+            #       than total charging power demand
+            # Todo: Also add, here and above, and elsewhere, Error handling
+            breakpoint()
+            penalty = 0
+
         remaining_power_demand = power_demand - available_solar_power
 
         if self.battery_system:
-            power_demand_before_taking_action = remaining_power_demand
-            # if self.battery_system.CHARGING_MODE == 'bounded':
-            # if self.battery_system.CHARGING_MODE == 'controlled':
-            # remaining_power_demand=remaining_power_demand
-            # remaining_available_power_after_charging=remaining_available_power
+            initial_power_demand = remaining_power_demand
+
             remaining_power_demand = self.battery_system.charge_or_discharge(battery_action,
                                                                              remaining_power_demand,
                                                                              self.TIME_INTERVAL)
-            self.penaliser.penalise_battery_issues(battery_action,
-                                                   self.battery_system.current_state_of_charge,
+            self.penaliser.penalise_battery_issues(self.battery_system.current_state_of_charge,
                                                    self.battery_system.depth_of_discharge,
-                                                   power_demand_before_taking_action,
+                                                   initial_power_demand,
                                                    remaining_power_demand)
 
-        if remaining_power_demand >= 0:
-            return remaining_power_demand
-        else:
-            if self.vehicle_to_everything:
-                return -remaining_power_demand
-            else:
-                # Todo: After training the model with changed code, check if this happens because of discharging BESS
-                return remaining_power_demand
+        return remaining_power_demand
