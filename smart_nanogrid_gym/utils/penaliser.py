@@ -81,20 +81,6 @@ class Penaliser:
             self.battery_state_of_charge_below_dod_penalty = 0
             self.battery_reward = 0
 
-    def penalise_battery_charging_action(self, positive_battery_action):
-        if positive_battery_action < 0:
-            self.battery_charging_action_penalty = (positive_battery_action * 3) ** 2
-        else:
-            self.battery_charging_action_penalty = 0
-            # Todo: Feat: Add battery_penalty = battery_action or different penalising strategy
-
-    def penalise_battery_discharging_action(self, negative_battery_action):
-        if negative_battery_action > 0:
-            self.battery_discharging_action_penalty = (negative_battery_action * 3) ** 2
-        else:
-            self.battery_discharging_action_penalty = 0
-            # Todo: Feat: Add battery_penalty = battery_action or different penalising strategy
-
     def get_total_penalty(self):
         self.calculate_total_penalty()
         return self.total_penalty
