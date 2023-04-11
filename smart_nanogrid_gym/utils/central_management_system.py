@@ -139,17 +139,13 @@ class CentralManagementSystem:
 
     def calculate_grid_power(self, power_demand, available_solar_power, battery_action):
         if power_demand < 0 and not self.vehicle_to_everything:
-            # Todo: Add penalty for this, because this is unrealistic behaviour
-            #       Add this only after debugging with breakpoint
-            breakpoint()
-            penalty = 0
+            raise ValueError("Error: If V2X mode is not enabled, then power_demand cannot be less than 0!")
         elif power_demand < 0 and self.vehicle_to_everything:
             # Todo: Add penalty for this, because until building is added to model, this is unwanted behaviour,
             #       i.e. until building is included, Total discharging power provided from EVs cannot be greater
             #       than total charging power demand
             # Todo: Also add, here and above, and elsewhere, Error handling
             breakpoint()
-            penalty = 0
 
         remaining_power_demand = power_demand - available_solar_power
 

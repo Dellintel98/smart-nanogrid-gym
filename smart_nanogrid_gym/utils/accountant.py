@@ -3,12 +3,14 @@ from numpy import zeros, array, concatenate
 
 class Accountant:
     def __init__(self):
+        self.SELLING_ENERGY_TO_GRID_PRICE_COEFFICIENT = 0.8
         self.total_cost = 0.0
         self.grid_energy_cost = 0.0
 
         self.high_tariff = 0.0
         self.low_tariff = 0.0
         self.set_grid_tariffs()
+
         self.energy_price = zeros((1, 2 * 24))
         self.energy_price_max = 0.0
 
@@ -22,7 +24,11 @@ class Accountant:
         self.low_tariff = grid_tariff_low + energy_tariff_low + res_incentive
 
     def calculate_grid_energy_cost(self, energy, price):
-        self.grid_energy_cost = energy * price
+        if energy < 0:
+            self.grid_energy_cost = energy * self.SELLING_ENERGY_TO_GRID_PRICE_COEFFICIENT * price
+        else:
+            self.grid_energy_cost = energy * price
+
         return self.grid_energy_cost
 
     def calculate_total_cost(self, additional_cost):
