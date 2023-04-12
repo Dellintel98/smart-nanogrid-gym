@@ -16,6 +16,7 @@ class BatteryEnergyStorageSystem:
         self.max_discharging_power: int = max_discharging_power
         self.depth_of_discharge: float = depth_of_discharge
         self.current_power_value: float = 0.0
+        self.calculated_power_value: float = 0.0
         self.excess_charging_power: float = 0.0
         self.excess_discharging_power: float = 0.0
 
@@ -38,6 +39,7 @@ class BatteryEnergyStorageSystem:
         if self.CHARGING_MODE == 'bounded':
             charging_power = positive_action * self.max_charging_power * self.charging_efficiency
             current_state_of_charge = self.current_state_of_charge + (charging_power * time_interval) / self.max_capacity
+            self.calculated_power_value = charging_power
 
             if current_state_of_charge > 1:
                 # FULL BATTERY CAN OVERCHARGE BUT SOC STAYS THE SAME,
@@ -60,6 +62,7 @@ class BatteryEnergyStorageSystem:
         if self.CHARGING_MODE == 'bounded':
             discharging_power = negative_action * self.max_discharging_power * self.discharging_efficiency
             current_state_of_charge = self.current_state_of_charge + (discharging_power * time_interval) / self.max_capacity
+            self.calculated_power_value = discharging_power
 
             if current_state_of_charge < 0:
                 # EMPTY BATTERY CANNOT BE DISCHARGED, THEREFORE REMAINING POWER CANNOT BE CHANGED
@@ -85,6 +88,9 @@ class BatteryEnergyStorageSystem:
 
     def get_used_power_value(self):
         return self.current_power_value
+
+    def get_calculated_power_value(self):
+        return self.calculated_power_value
 
     def get_system_info(self):
         info = {
