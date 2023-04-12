@@ -107,14 +107,15 @@ class CentralManagementSystem:
         self.penaliser.calculate_insufficiently_charged_penalty(self.charging_station.get_all_departing_vehicles(),
                                                                 self.charging_station.get_vehicles_state_of_charge(),
                                                                 self.charging_station.get_requested_end_state_of_charge_for_all_chargers(),
+                                                                self.charging_station.arrivals,
                                                                 timestep)
 
         total_penalty = self.penaliser.get_total_penalty()
         total_cost = self.accountant.calculate_total_cost(additional_cost=total_penalty)
 
         if self.battery_system:
-            battery_soc = self.battery_system.current_state_of_charge
-            battery_power_value = self.battery_system.current_power_value
+            battery_soc = self.battery_system.get_state_of_charge()
+            battery_power_value = self.battery_system.get_used_power_value()
         else:
             battery_soc = 0
             battery_power_value = 0
@@ -125,7 +126,7 @@ class CentralManagementSystem:
             'Grid energy': grid_energy,
             'Utilized solar energy': available_solar_power,
             'Insufficiently charged vehicles penalty': self.penaliser.get_insufficiently_charged_vehicles_penalty(),
-            'Battery penalty': self.penaliser.total_battery_penalty,
+            'Battery penalty': self.penaliser.get_total_battery_penalty(),
             'Total penalty': total_penalty,
             'Battery state of charge': battery_soc,
             'Grid energy cost': grid_energy_cost,
@@ -158,6 +159,7 @@ class CentralManagementSystem:
             self.penaliser.penalise_battery_issues(self.battery_system.current_state_of_charge,
                                                    self.battery_system.depth_of_discharge,
                                                    initial_power_demand,
-                                                   remaining_power_demand)
+                                                   remaining_power_demand, self.battery_system.excess_charging_amount,
+                                                   self.battery_system.excess_discharging_amount)
 
         return remaining_power_demand

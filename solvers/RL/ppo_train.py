@@ -7,11 +7,11 @@ from stable_baselines3 import PPO
 import time
 
 number_of_chargers = 4
-vehicle_charging_modes = ['controlled', 'bounded']
-# charging modes: controlled [with remaining capacity and soc], bounded [-1, 1]*max_power;
-#        {add later maybe: max_bounded[-22, 22], unbounded[-inf, inf]}
+vehicle_charging_modes = ['bounded']
+# charging modes: bounded [-1, 1]*max_power;
+#        {add later maybe: cc-cv-bounded...}
 charging_mode = vehicle_charging_modes[0]
-
+# Todo: Add prioritisation mode choice, e.g. prioritise selling to grid over charging bess, or the other way around
 vehicle_uncharged_penalty_modes = ['no_penalty', 'on_departure', 'sparse', 'dense']
 # penalty modes: no_penalty, on_departure, sparse, dense
 penalty_mode = vehicle_uncharged_penalty_modes[3]

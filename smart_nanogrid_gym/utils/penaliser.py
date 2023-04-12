@@ -22,18 +22,23 @@ class Penaliser:
     def get_insufficiently_charged_vehicles_penalty(self):
         return self.insufficiently_charged_vehicles_penalty
 
-    def calculate_insufficiently_charged_penalty(self, departing_vehicles, soc, requested_end_soc, timestep):
+    def calculate_insufficiently_charged_penalty(self, departing_vehicles, soc, requested_end_soc, vehicle_arrivals, timestep):
         penalties_per_departing_vehicle = []
-        for vehicle in range(len(departing_vehicles)):
-            penalty = self.calculate_insufficiently_charged_penalty_per_vehicle(departing_vehicles[vehicle], soc,
-                                                                                requested_end_soc, timestep)
+        for vehicle in departing_vehicles:
+
+            penalty = self.calculate_insufficiently_charged_penalty_per_vehicle(vehicle,
+                                                                                vehicle_arrivals[vehicle],
+                                                                                soc, requested_end_soc, timestep)
             penalties_per_departing_vehicle.append(penalty)
 
         self.insufficiently_charged_vehicles_penalty = sum(penalties_per_departing_vehicle)
 
-    def calculate_insufficiently_charged_penalty_per_vehicle(self, vehicle, soc, requested_end_soc, timestep):
-        # uncharged_capacity = 1 - soc[vehicle, timestep - 1]
-        uncharged_capacity = requested_end_soc[vehicle, timestep - 1] - soc[vehicle, timestep - 1]
+    def calculate_insufficiently_charged_penalty_per_vehicle(self, vehicle, vehicle_arrivals, soc, requested_end_soc, timestep):
+        if timestep in vehicle_arrivals:
+            uncharged_capacity = requested_end_soc[vehicle, timestep] - soc[vehicle, timestep]
+        else:
+            uncharged_capacity = requested_end_soc[vehicle, timestep - 1] - soc[vehicle, timestep - 1]
+
         charging_breathing_space = 0.05 * requested_end_soc[vehicle, timestep - 1]
         lower_breathing_space = -charging_breathing_space
         upper_breathing_space = charging_breathing_space
@@ -59,10 +64,12 @@ class Penaliser:
             self.vehicle_state_of_charge_above_1_penalty = 0
 
     def penalise_battery_issues(self, current_state_of_charge, depth_of_discharge, initial_power_demand,
-                                remaining_power_demand):
+                                remaining_power_demand, excess_charging_amount, excess_discharging_amount):
         self.penalise_unwanted_battery_charging(initial_power_demand, remaining_power_demand)
         self.penalise_unwanted_battery_discharging(initial_power_demand, remaining_power_demand)
         self.penalise_state_of_charge_outside_bounds(current_state_of_charge, depth_of_discharge)
+        self.excess_battery_charging_penalty = self.excess_battery_charging_penalty + excess_charging_amount
+        self.excess_battery_discharging_penalty = self.excess_battery_discharging_penalty + excess_discharging_amount
 
     def penalise_unwanted_battery_charging(self, initial_power, remaining_power):
         if 0 <= initial_power < remaining_power:
@@ -93,11 +100,11 @@ class Penaliser:
             self.battery_state_of_charge_below_dod_penalty = 0.0
             self.battery_state_of_charge_above_1_penalty = 0.0
         elif current_state_of_charge < depth_of_discharge:
-            self.battery_state_of_charge_below_dod_penalty = ((depth_of_discharge - current_state_of_charge) * 5) ** 2
+            self.battery_state_of_charge_below_dod_penalty = ((depth_of_discharge - current_state_of_charge) * 2) ** 2
             self.battery_state_of_charge_above_1_penalty = 0.0
             self.battery_reward = 0.0
         elif current_state_of_charge > 1.0:
-            self.battery_state_of_charge_above_1_penalty = ((current_state_of_charge - 1.0) * 5) ** 2
+            self.battery_state_of_charge_above_1_penalty = ((current_state_of_charge - 1.0) * 2) ** 2
             self.battery_state_of_charge_below_dod_penalty = 0.0
             self.battery_reward = 0.0
 
