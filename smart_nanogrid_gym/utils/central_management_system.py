@@ -156,10 +156,9 @@ class CentralManagementSystem:
             remaining_power_demand = self.battery_system.charge_or_discharge(battery_action,
                                                                              remaining_power_demand,
                                                                              self.TIME_INTERVAL)
-            self.penaliser.penalise_battery_issues(self.battery_system.current_state_of_charge,
-                                                   self.battery_system.depth_of_discharge,
-                                                   initial_power_demand,
-                                                   remaining_power_demand, self.battery_system.excess_charging_amount,
-                                                   self.battery_system.excess_discharging_amount)
+
+            self.penaliser.penalise_battery_issues(initial_power_demand=initial_power_demand,
+                                                   remaining_power_demand=remaining_power_demand,
+                                                   **self.battery_system.get_system_info())
 
         return remaining_power_demand
