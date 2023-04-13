@@ -5,6 +5,8 @@ from numpy import array, zeros
 
 class Charger:
     def __init__(self, charging_mode):
+        self.excess_vehicle_charging_power = 0.0
+        self.excess_vehicle_discharging_power = 0.0
         self.CHARGING_MODE = charging_mode
         self.occupied: bool = False
         self.connected_electric_vehicle: Optional[ElectricVehicle] = None
@@ -34,21 +36,47 @@ class Charger:
     def charge_or_discharge_vehicle(self, action, timestep, time_interval):
         if action == 0:
             self.power_value = 0.0
+            self.excess_vehicle_charging_power = 0.0
+            self.excess_vehicle_discharging_power = 0.0
+            if timestep in self.vehicle_arrivals:
+                self.vehicle_state_of_charge[timestep] = self.vehicle_state_of_charge[timestep]
+            else:
+                self.vehicle_state_of_charge[timestep] = self.vehicle_state_of_charge[timestep - 1]
         elif action > 0:
             self.power_value = self.charge_vehicle(action, timestep, time_interval)
+            self.excess_vehicle_discharging_power = 0.0
         else:
             self.power_value = self.discharge_vehicle(action, timestep, time_interval)
+            self.excess_vehicle_charging_power = 0.0
 
-        self.calculate_next_vehicle_state_of_charge(timestep, time_interval)
+        # self.calculate_next_vehicle_state_of_charge(timestep, time_interval)
 
         return self.power_value
 
     def charge_vehicle(self, action, timestep, time_interval):
-        if self.CHARGING_MODE == 'controlled':
-            max_charging_power = self.calculate_max_charging_power(timestep, time_interval)
-            charging_power = self.calculate_charging_or_discharging_power(max_charging_power, action)
-        elif self.CHARGING_MODE == 'bounded':
+        if self.CHARGING_MODE == 'bounded':
             charging_power = self.calculate_charging_power(action)
+
+            if timestep in self.vehicle_arrivals:
+                vehicle_capacity = self.vehicle_capacities[timestep]
+                vehicle_state_of_charge = self.vehicle_state_of_charge[timestep]
+            else:
+                vehicle_capacity = self.vehicle_capacities[timestep - 1]
+                vehicle_state_of_charge = self.vehicle_state_of_charge[timestep - 1]
+
+            state_of_charge_value_change = (charging_power * time_interval) / vehicle_capacity
+
+            next_state_of_charge = vehicle_state_of_charge + state_of_charge_value_change
+
+            if next_state_of_charge > 1.0:
+                # FULL EV BATTERY CAN OVERCHARGE BUT SOC STAYS THE SAME,
+                # EXCESS ENERGY TRANSFORMS TO HEAT
+                possible_charging_power = ((1.0 - vehicle_state_of_charge) * vehicle_capacity) / time_interval
+                self.excess_vehicle_charging_power = charging_power - possible_charging_power
+            else:
+                self.excess_vehicle_charging_power = 0.0
+
+            self.vehicle_state_of_charge[timestep] = min(next_state_of_charge, 1.0)
         else:
             raise ValueError("Error: Wrong charging mode provided!")
 
@@ -58,54 +86,51 @@ class Charger:
         charging_power = action * self.connected_electric_vehicle.max_charging_power * self.connected_electric_vehicle.charging_efficiency
         return charging_power
 
-    def calculate_max_charging_power(self, timestep, time_interval):
-        if timestep in self.vehicle_arrivals:
-            remaining_uncharged_capacity = self.requested_end_state_of_charge[timestep] - self.vehicle_state_of_charge[timestep]
-        else:
-            remaining_uncharged_capacity = self.requested_end_state_of_charge[timestep - 1] - self.vehicle_state_of_charge[timestep - 1]
-
-        power_left_to_charge = (remaining_uncharged_capacity * self.vehicle_capacities[timestep]) / time_interval
-
-        max_charging_power = min([self.connected_electric_vehicle.max_charging_power, power_left_to_charge]) * self.connected_electric_vehicle.charging_efficiency
-        return max_charging_power
-
-    def calculate_charging_or_discharging_power(self, max_power, action):
-        return action * max_power
-
-    def calculate_next_vehicle_state_of_charge(self, timestep, time_interval):
-        if self.power_value != 0:
-            state_of_charge_value_change = (self.power_value * time_interval) / self.vehicle_capacities[timestep]
-        else:
-            state_of_charge_value_change = 0.0
-        # Todo: Add alpha limit for CC-CV charging switch here
-
-        if timestep in self.vehicle_arrivals:
-            self.vehicle_state_of_charge[timestep] = self.vehicle_state_of_charge[timestep] + state_of_charge_value_change
-        else:
-            self.vehicle_state_of_charge[timestep] = self.vehicle_state_of_charge[timestep - 1] + state_of_charge_value_change
+    # def calculate_next_vehicle_state_of_charge(self, timestep, time_interval):
+    #     if self.power_value != 0:
+    #         state_of_charge_value_change = (self.power_value * time_interval) / self.vehicle_capacities[timestep]
+    #     else:
+    #         state_of_charge_value_change = 0.0
+    #     # Todo: Add alpha limit for CC-CV charging switch here
+    #
+    #     if timestep in self.vehicle_arrivals:
+    #         self.vehicle_state_of_charge[timestep] = self.vehicle_state_of_charge[timestep] + state_of_charge_value_change
+    #     else:
+    #         self.vehicle_state_of_charge[timestep] = self.vehicle_state_of_charge[timestep - 1] + state_of_charge_value_change
 
     def discharge_vehicle(self, action, timestep, time_interval):
-        if self.CHARGING_MODE == 'controlled':
-            max_discharging_power = self.calculate_max_discharging_power(timestep, time_interval)
-            discharging_power = self.calculate_charging_or_discharging_power(max_discharging_power, action)
-        elif self.CHARGING_MODE == 'bounded':
-            discharging_power = self.calculate_charging_power(action)
+        if self.CHARGING_MODE == 'bounded':
+            discharging_power = self.calculate_discharging_power(action)
+
+            if timestep in self.vehicle_arrivals:
+                vehicle_capacity = self.vehicle_capacities[timestep]
+                vehicle_state_of_charge = self.vehicle_state_of_charge[timestep]
+            else:
+                vehicle_capacity = self.vehicle_capacities[timestep - 1]
+                vehicle_state_of_charge = self.vehicle_state_of_charge[timestep - 1]
+
+            state_of_charge_value_change = (discharging_power * time_interval) / vehicle_capacity
+            next_state_of_charge = vehicle_state_of_charge + state_of_charge_value_change
+
+            if next_state_of_charge < 0:
+                # EMPTY EV BATTERY CANNOT BE DISCHARGED
+                possible_discharging_power = (vehicle_state_of_charge * vehicle_capacity) / time_interval
+                self.excess_vehicle_discharging_power = abs(discharging_power) - possible_discharging_power
+                discharging_power = -possible_discharging_power
+            else:
+                self.excess_vehicle_discharging_power = 0.0
+
+            self.vehicle_state_of_charge[timestep] = max(0.0, next_state_of_charge)
         else:
             raise ValueError("Error: Wrong discharging mode provided!")
-
+        # Todo: Add returning calculated power value like in battery_system
         return discharging_power
-
-    def calculate_max_discharging_power(self, timestep, time_interval):
-        if timestep in self.vehicle_arrivals:
-            vehicle_state_of_energy = self.vehicle_state_of_charge[timestep] * self.vehicle_capacities[timestep]
-        else:
-            vehicle_state_of_energy = self.vehicle_state_of_charge[timestep - 1] * self.vehicle_capacities[timestep - 1]
-
-        power_left_to_discharge = vehicle_state_of_energy / time_interval
-
-        max_discharging_power = min([self.connected_electric_vehicle.max_discharging_power, power_left_to_discharge]) / self.connected_electric_vehicle.discharging_efficiency
-        return max_discharging_power
 
     def calculate_discharging_power(self, action):
         discharging_power = action * self.connected_electric_vehicle.max_discharging_power * self.connected_electric_vehicle.discharging_efficiency
         return discharging_power
+
+    def reset_info_values(self):
+        self.power_value = 0.0
+        self.excess_vehicle_charging_power = 0.0
+        self.excess_vehicle_discharging_power = 0.0

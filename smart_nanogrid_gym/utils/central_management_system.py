@@ -91,6 +91,7 @@ class CentralManagementSystem:
             battery_action = 0
 
         result = self.charging_station.simulate_vehicle_charging(charger_actions, timestep, self.TIME_INTERVAL)
+        self.penaliser.penalise_charging_station_issues(timestep, **self.charging_station.get_info_for_penalisation())
 
         if self.pv_system_manager:
             available_solar_power = self.pv_system_manager.get_available_solar_produced_power_at_timestep_t(timestep)
@@ -104,21 +105,19 @@ class CentralManagementSystem:
         energy_price = self.accountant.get_energy_price_at_time_t(timestep)
         grid_energy_cost = self.accountant.calculate_grid_energy_cost(grid_energy, energy_price)
 
-        self.penaliser.calculate_insufficiently_charged_penalty(self.charging_station.get_all_departing_vehicles(),
-                                                                self.charging_station.get_vehicles_state_of_charge(),
-                                                                self.charging_station.get_requested_end_state_of_charge_for_all_chargers(),
-                                                                self.charging_station.arrivals,
-                                                                timestep)
-
         total_penalty = self.penaliser.get_total_penalty()
         total_cost = self.accountant.calculate_total_cost(additional_cost=total_penalty)
 
         if self.battery_system:
             battery_soc = self.battery_system.get_state_of_charge()
             battery_power_value = self.battery_system.get_used_power_value()
+            battery_calculated_power_value = self.battery_system.get_calculated_power_value()
         else:
-            battery_soc = 0
-            battery_power_value = 0
+            battery_soc = 0.0
+            battery_power_value = 0.0
+            battery_calculated_power_value = 0.0
+
+        # Todo: Also return specific battery and vehicle penalties, temporarily, for checking their value movements
 
         return {
             'Total cost': total_cost,

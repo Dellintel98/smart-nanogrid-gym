@@ -23,6 +23,7 @@ class ChargingStation:
         self.departure_times = []
         self.vehicle_state_of_charge_at_current_timestep = []
         self._departing_vehicles = []
+        self._penalty_check_vehicles = []
 
         self.electric_vehicle_info = ElectricVehicle(battery_capacity=40, current_capacity=0, charging_efficiency=0.95,
                                                      discharging_efficiency=0.95, max_charging_power=22,
@@ -31,11 +32,35 @@ class ChargingStation:
         self.generated_initial_values_json = {}
 
     def simulate(self, current_timestep, time_interval):
-        self.find_departing_vehicles(current_timestep, time_interval)
+        self.find_vehicles_for_penalty_check(current_timestep, time_interval)
+        # self.find_departing_vehicles(current_timestep, time_interval)  # Keep this to use if needed
         self.calculate_departure_times(current_timestep)
         self.extract_current_state_of_charge_per_vehicle(current_timestep)
 
         return self.departure_times, self.vehicle_state_of_charge_at_current_timestep
+
+    def find_vehicles_for_penalty_check(self, timestep, time_interval):
+        if timestep >= (24 / time_interval):
+            return []
+
+        self._penalty_check_vehicles.clear()
+        for index, charger in enumerate(self.chargers):
+            charger_occupied = charger.occupancy[timestep]
+
+            if self.UNCHARGED_PENALTY_MODE == 'no_penalty':
+                penalty_check_allowed = False
+            elif self.UNCHARGED_PENALTY_MODE == 'on_departure':
+                penalty_check_allowed = self.check_is_vehicle_departing(self.departures[index], timestep)
+            elif self.UNCHARGED_PENALTY_MODE == 'sparse':
+                penalty_check_allowed = self.check_is_vehicle_departing_in_next_n_timesteps(self.departures[index],
+                                                                                            timestep, n=3)
+            elif self.UNCHARGED_PENALTY_MODE == 'dense':
+                penalty_check_allowed = True
+            else:
+                raise ValueError("Error: Wrong vehicle uncharged - penalty mode provided!")
+
+            if charger_occupied and penalty_check_allowed:
+                self._penalty_check_vehicles.append(index)
 
     def find_departing_vehicles(self, timestep, time_interval):
         if timestep >= (24 / time_interval):
@@ -45,27 +70,20 @@ class ChargingStation:
         for index, charger in enumerate(self.chargers):
             charger_occupied = charger.occupancy[timestep]
 
-            if self.UNCHARGED_PENALTY_MODE == 'no_penalty':
-                vehicle_departing = False
-            elif self.UNCHARGED_PENALTY_MODE == 'on_departure':
-                vehicle_departing = self.check_is_vehicle_departing(self.departures[index], timestep)
-            elif self.UNCHARGED_PENALTY_MODE == 'sparse':
-                vehicle_departing = self.check_is_vehicle_departing_in_next_3_timesteps(self.departures[index], timestep)
-            elif self.UNCHARGED_PENALTY_MODE == 'dense':
-                vehicle_departing = True
-            else:
-                raise ValueError("Error: Wrong vehicle uncharged - penalty mode provided!")
+            vehicle_departing = self.check_is_vehicle_departing(self.departures[index], timestep)
+            # vehicle_departing = self.check_is_vehicle_departing_in_next_n_timesteps(self.departures[index], timestep, n=3)
 
             if charger_occupied and vehicle_departing:
                 self._departing_vehicles.append(index)
 
     def check_is_vehicle_departing(self, vehicle_departure, timestep):
+        # Todo: Combine this and below method and include possibility for checking n timesteps ahead
         if timestep + 1 in vehicle_departure:
             return True
         else:
             return False
 
-    def check_is_vehicle_departing_in_next_3_timesteps(self, vehicle_departure, timestep):
+    def check_is_vehicle_departing_in_next_n_timesteps(self, vehicle_departure, timestep, n):
         if (timestep + 1 in vehicle_departure) or (timestep + 2 in vehicle_departure) or (timestep + 3 in vehicle_departure):
             return True
         else:
@@ -270,6 +288,7 @@ class ChargingStation:
                 charger_power_values[index] = charger.charge_or_discharge_vehicle(action, current_timestep, time_interval)
             else:
                 charger_power_values[index] = 0
+                charger.reset_info_values()
 
         total_discharging_power = charger_power_values[charger_power_values < 0].sum()
         total_charging_power = charger_power_values[charger_power_values > 0].sum()
@@ -298,3 +317,26 @@ class ChargingStation:
 
     def get_all_departing_vehicles(self):
         return self._departing_vehicles
+
+    def get_info_for_penalisation(self):
+        vehicles_for_penalty_check = self._penalty_check_vehicles
+        vehicles_state_of_charge = self.get_vehicles_state_of_charge()
+        requested_end_state_of_charge_per_charger = self.get_requested_end_state_of_charge_for_all_chargers()
+        arrivals = self.arrivals
+        excess_charging_powers = self.get_excess_vehicles_charging_power_per_charger()
+        excess_discharging_powers = self.get_excess_vehicles_discharging_power_per_charger()
+
+        return {
+            'penalty_check_vehicles': vehicles_for_penalty_check,
+            'states_of_charge': vehicles_state_of_charge,
+            'requested_end_states_of_charge': requested_end_state_of_charge_per_charger,
+            'vehicle_arrivals': arrivals,
+            'excess_charging_powers': excess_charging_powers,
+            'excess_discharging_powers': excess_discharging_powers
+        }
+
+    def get_excess_vehicles_charging_power_per_charger(self):
+        return [charger.excess_vehicle_charging_power for charger in self.chargers]
+
+    def get_excess_vehicles_discharging_power_per_charger(self):
+        return [charger.excess_vehicle_discharging_power for charger in self.chargers]

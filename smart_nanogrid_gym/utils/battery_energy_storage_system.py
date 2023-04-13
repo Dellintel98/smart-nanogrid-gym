@@ -38,10 +38,10 @@ class BatteryEnergyStorageSystem:
     def charge(self, available_power, positive_action, time_interval):
         if self.CHARGING_MODE == 'bounded':
             charging_power = positive_action * self.max_charging_power * self.charging_efficiency
-            current_state_of_charge = self.current_state_of_charge + (charging_power * time_interval) / self.max_capacity
+            next_state_of_charge = self.current_state_of_charge + (charging_power * time_interval) / self.max_capacity
             self.calculated_power_value = charging_power
 
-            if current_state_of_charge > 1:
+            if next_state_of_charge > 1.0:
                 # FULL BATTERY CAN OVERCHARGE BUT SOC STAYS THE SAME,
                 # EXCESS ENERGY TRANSFORMS TO HEAT
                 possible_charging_power = ((1.0 - self.current_state_of_charge) * self.max_capacity) / time_interval
@@ -49,7 +49,7 @@ class BatteryEnergyStorageSystem:
             else:
                 self.excess_charging_power = 0.0
 
-            self.current_state_of_charge = min(current_state_of_charge, 1.0)
+            self.current_state_of_charge = min(next_state_of_charge, 1.0)
             self.current_power_value = charging_power
 
             remaining_available_power = available_power - charging_power
@@ -61,10 +61,10 @@ class BatteryEnergyStorageSystem:
     def discharge(self, power_demand, negative_action, time_interval):
         if self.CHARGING_MODE == 'bounded':
             discharging_power = negative_action * self.max_discharging_power * self.discharging_efficiency
-            current_state_of_charge = self.current_state_of_charge + (discharging_power * time_interval) / self.max_capacity
+            next_state_of_charge = self.current_state_of_charge + (discharging_power * time_interval) / self.max_capacity
             self.calculated_power_value = discharging_power
 
-            if current_state_of_charge < 0:
+            if next_state_of_charge < 0:
                 # EMPTY BATTERY CANNOT BE DISCHARGED, THEREFORE REMAINING POWER CANNOT BE CHANGED
                 # FOR THE VALUE LARGER THAN THE AMOUNT BATTERY HAS
                 possible_discharging_power = (self.current_state_of_charge * self.max_capacity) / time_interval
@@ -73,7 +73,7 @@ class BatteryEnergyStorageSystem:
             else:
                 self.excess_discharging_power = 0.0
 
-            self.current_state_of_charge = max(0.0, current_state_of_charge)
+            self.current_state_of_charge = max(0.0, next_state_of_charge)
             self.current_power_value = discharging_power
             # Todo: Add calculated_power_value to show wrong initial discharging power value for wrong action
 
