@@ -63,10 +63,21 @@ class SmartNanogridEnv(gym.Env):
         self.info = None
 
         self.grid_energy_per_timestep, self.solar_energy_utilization_per_timestep = None, None
-        self.total_cost_per_timestep, self.vehicle_penalty_per_timestep = None, None
-        self.total_penalty_per_timestep, self.battery_penalty_per_timestep = None, None
+        self.total_cost_per_timestep, self.total_vehicle_penalty_per_timestep = None, None
+        self.total_penalty_per_timestep, self.total_battery_penalty_per_timestep = None, None
         self.battery_per_timestep, self.grid_energy_cost_per_timestep = None, None
         self.grid_power_per_timestep = None
+
+        self.battery_soc_below_dod_penalty_per_timestep = None
+        self.needlessly_charged_battery_penalty_per_timestep = None
+        self.needlessly_discharged_battery_penalty_per_timestep = None
+        self.excessively_charged_battery_penalty_per_timestep = None
+        self.excessively_discharged_battery_penalty_per_timestep = None
+        self.insufficiently_charged_vehicle_penalty_per_timestep = None
+        self.needlessly_charged_vehicle_penalty_per_timestep = None
+        self.excessively_charged_vehicle_penalty_per_timestep = None
+        self.excessively_discharged_vehicle_penalty_per_timestep = None
+        self.battery_calculated_power_value_per_timestep = None
 
         self.battery_action_per_timestep, self.charger_actions_per_timestep = None, None
         self.total_charging_power_per_timestep, self.total_discharging_power_per_timestep = None, None
@@ -128,20 +139,33 @@ class SmartNanogridEnv(gym.Env):
         results = self.central_management_system.simulate(self.timestep, actions)
 
         self.total_cost_per_timestep.append(results['Total cost'])
-        self.grid_power_per_timestep.append(results['Grid power'])
-        self.grid_energy_per_timestep.append(results['Grid energy'])
-        self.solar_energy_utilization_per_timestep.append(results['Utilized solar energy'])
-        self.vehicle_penalty_per_timestep.append(results['Insufficiently charged vehicles penalty'])
-        self.battery_penalty_per_timestep.append(results['Battery penalty'])
-        self.total_penalty_per_timestep.append(results['Total penalty'])
-        self.battery_per_timestep.append(results['Battery state of charge'])
         self.grid_energy_cost_per_timestep.append(results['Grid energy cost'])
+        self.grid_energy_per_timestep.append(results['Grid energy'])
+        self.grid_power_per_timestep.append(results['Grid power'])
+        self.solar_energy_utilization_per_timestep.append(results['Utilized solar energy'])
+        self.total_penalty_per_timestep.append(results['Total penalty'])
+
+        self.total_battery_penalty_per_timestep.append(results['Total battery penalty'])
+        self.battery_soc_below_dod_penalty_per_timestep.append(results['Battery soc below dod penalty'])
+        self.needlessly_charged_battery_penalty_per_timestep.append(results['Needlessly charged battery penalty'])
+        self.needlessly_discharged_battery_penalty_per_timestep.append(results['Needlessly discharged battery penalty'])
+        self.excessively_charged_battery_penalty_per_timestep.append(results['Excessively charged battery penalty'])
+        self.excessively_discharged_battery_penalty_per_timestep.append(results['Excessively discharged battery penalty'])
+
+        self.total_vehicle_penalty_per_timestep.append(results['Total vehicle penalty'])
+        self.insufficiently_charged_vehicle_penalty_per_timestep.append(results['Insufficiently charged vehicles penalty'])
+        self.needlessly_charged_vehicle_penalty_per_timestep.append(results['Needlessly charged vehicles penalty'])
+        self.excessively_charged_vehicle_penalty_per_timestep.append(results['Excessively charged vehicles penalty'])
+        self.excessively_discharged_vehicle_penalty_per_timestep.append(results['Excessively discharged vehicles penalty'])
+
         self.battery_action_per_timestep.append(results['Battery action'])
         self.charger_actions_per_timestep.append(results['Charger actions'])
         self.total_charging_power_per_timestep.append(results['Total charging power'])
         self.total_discharging_power_per_timestep.append(results['Total discharging power'])
         self.charger_power_values_per_timestep.append(results['Charger power values'])
         self.battery_power_value_per_timestep.append(results['Battery power value'])
+        self.battery_calculated_power_value_per_timestep.append(results['Battery calculated power value'])
+        self.battery_per_timestep.append(results['Battery state of charge'])
 
         observations = self.__get_observations()
         self.timestep = self.timestep + 1
@@ -218,8 +242,8 @@ class SmartNanogridEnv(gym.Env):
             'Grid_power': self.grid_power_per_timestep,
             'Grid_energy': self.grid_energy_per_timestep,
             'Utilized_solar_energy': self.solar_energy_utilization_per_timestep,
-            'Vehicle_penalties': self.vehicle_penalty_per_timestep,
-            'Battery_penalties': self.battery_penalty_per_timestep,
+            'Total_vehicle_penalties': self.total_vehicle_penalty_per_timestep,
+            'Total_battery_penalties': self.total_battery_penalty_per_timestep,
             'Total_penalties': self.total_penalty_per_timestep,
             'Available_solar_energy': available_solar_energy,
             'Total_cost': self.total_cost_per_timestep,
@@ -230,7 +254,17 @@ class SmartNanogridEnv(gym.Env):
             'Total_charging_power': self.total_charging_power_per_timestep,
             'Total_discharging_power': self.total_discharging_power_per_timestep,
             'Charger_power_values': self.charger_power_values_per_timestep,
-            'Battery_power_value': self.battery_power_value_per_timestep
+            'Battery_power_value': self.battery_power_value_per_timestep,
+            'Battery_SOC_below_DoD_penalties': self.battery_soc_below_dod_penalty_per_timestep,
+            'Needlessly_charged_battery_penalties': self.needlessly_charged_battery_penalty_per_timestep,
+            'Needlessly_discharged_battery_penalties': self.needlessly_discharged_battery_penalty_per_timestep,
+            'Excessively_charged_battery_penalties': self.excessively_charged_battery_penalty_per_timestep,
+            'Excessively_discharged_battery_penalties': self.excessively_discharged_battery_penalty_per_timestep,
+            'Insufficiently_charged_vehicle_penalties': self.insufficiently_charged_vehicle_penalty_per_timestep,
+            'Needlessly_charged_vehicle_penalties': self.needlessly_charged_vehicle_penalty_per_timestep,
+            'Excessively_charged_vehicle_penalties': self.excessively_charged_vehicle_penalty_per_timestep,
+            'Excessively_discharged_vehicle_penalties': self.excessively_discharged_vehicle_penalty_per_timestep,
+            'Battery_calculated_power_value': self.battery_calculated_power_value_per_timestep
         }
 
         with open(data_files_directory_path + "prediction_results.json", "w") as fp:
@@ -274,8 +308,8 @@ class SmartNanogridEnv(gym.Env):
         self.grid_power_per_timestep = []
         self.grid_energy_per_timestep = []
         self.solar_energy_utilization_per_timestep = []
-        self.vehicle_penalty_per_timestep = []
-        self.battery_penalty_per_timestep = []
+        self.total_vehicle_penalty_per_timestep = []
+        self.total_battery_penalty_per_timestep = []
         self.total_penalty_per_timestep = []
         self.battery_per_timestep = []
         self.grid_energy_cost_per_timestep = []
@@ -285,6 +319,17 @@ class SmartNanogridEnv(gym.Env):
         self.total_discharging_power_per_timestep = []
         self.charger_power_values_per_timestep = []
         self.battery_power_value_per_timestep = []
+
+        self.battery_soc_below_dod_penalty_per_timestep = []
+        self.needlessly_charged_battery_penalty_per_timestep = []
+        self.needlessly_discharged_battery_penalty_per_timestep = []
+        self.excessively_charged_battery_penalty_per_timestep = []
+        self.excessively_discharged_battery_penalty_per_timestep = []
+        self.insufficiently_charged_vehicle_penalty_per_timestep = []
+        self.needlessly_charged_vehicle_penalty_per_timestep = []
+        self.excessively_charged_vehicle_penalty_per_timestep = []
+        self.excessively_discharged_vehicle_penalty_per_timestep = []
+        self.battery_calculated_power_value_per_timestep = []
 
         self.ALGORITHM_USED = algorithm_used if algorithm_used else self.ALGORITHM_USED
         self.ENVIRONMENT_MODE = environment_mode if environment_mode else self.ENVIRONMENT_MODE

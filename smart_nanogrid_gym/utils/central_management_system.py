@@ -121,20 +121,30 @@ class CentralManagementSystem:
 
         return {
             'Total cost': total_cost,
-            'Grid power': grid_power,
-            'Grid energy': grid_energy,
-            'Utilized solar energy': available_solar_power,
-            'Insufficiently charged vehicles penalty': self.penaliser.get_insufficiently_charged_vehicles_penalty(),
-            'Battery penalty': self.penaliser.get_total_battery_penalty(),
-            'Total penalty': total_penalty,
-            'Battery state of charge': battery_soc,
             'Grid energy cost': grid_energy_cost,
+            'Grid energy': grid_energy,
+            'Grid power': grid_power,
+            'Utilized solar energy': available_solar_power,
+            'Total penalty': total_penalty,
+            'Total battery penalty': self.penaliser.get_total_battery_penalty(),
+            'Battery soc below dod penalty': self.penaliser.get_battery_state_of_charge_below_dod_penalty(),
+            'Needlessly charged battery penalty': self.penaliser.get_needlessly_charged_battery_penalty(),
+            'Needlessly discharged battery penalty': self.penaliser.get_needlessly_discharged_battery_penalty(),
+            'Excessively charged battery penalty': self.penaliser.get_excessively_charged_battery_penalty(),
+            'Excessively discharged battery penalty': self.penaliser.get_excessively_discharged_battery_penalty(),
+            'Total vehicle penalty': self.penaliser.get_total_vehicle_penalty(),
+            'Insufficiently charged vehicles penalty': self.penaliser.get_insufficiently_charged_vehicles_penalty(),
+            'Needlessly charged vehicles penalty': self.penaliser.get_needlessly_charged_vehicles_penalty(),
+            'Excessively charged vehicles penalty': self.penaliser.get_excessively_charged_vehicles_penalty(),
+            'Excessively discharged vehicles penalty': self.penaliser.get_excessively_discharged_vehicles_penalty(),
             'Battery action': battery_action,
             'Charger actions': charger_actions.tolist(),
             'Total charging power': result['Total charging power'],
             'Total discharging power': result['Total discharging power'],
             'Charger power values': result['Charger power values'],
-            'Battery power value': battery_power_value
+            'Battery power value': battery_power_value,
+            'Battery calculated power value': battery_calculated_power_value,
+            'Battery state of charge': battery_soc,
         }
 
     def calculate_grid_power(self, power_demand, available_solar_power, battery_action):

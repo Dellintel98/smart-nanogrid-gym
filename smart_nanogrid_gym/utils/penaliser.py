@@ -116,7 +116,31 @@ class Penaliser:
             self.battery_state_of_charge_below_dod_penalty = 0.0
 
     def get_insufficiently_charged_vehicles_penalty(self):
-        return self.insufficiently_charged_vehicles_penalty
+        return self.total_insufficiently_charged_vehicles_penalty
+
+    def get_needlessly_charged_vehicles_penalty(self):
+        return self.total_needless_vehicles_charging_penalty
+
+    def get_excessively_charged_vehicles_penalty(self):
+        return self.excess_vehicles_charging_penalty
+
+    def get_excessively_discharged_vehicles_penalty(self):
+        return self.excess_vehicles_discharging_penalty
+
+    def get_battery_state_of_charge_below_dod_penalty(self):
+        return self.battery_state_of_charge_below_dod_penalty
+
+    def get_needlessly_charged_battery_penalty(self):
+        return self.needless_battery_charging_penalty
+
+    def get_needlessly_discharged_battery_penalty(self):
+        return self.needless_battery_discharging_penalty
+
+    def get_excessively_charged_battery_penalty(self):
+        return self.excess_battery_charging_penalty
+
+    def get_excessively_discharged_battery_penalty(self):
+        return self.excess_battery_discharging_penalty
 
     def get_total_penalty(self):
         self.calculate_total_penalty()
@@ -124,6 +148,9 @@ class Penaliser:
 
     def get_total_battery_penalty(self):
         return self.total_battery_penalty
+
+    def get_total_vehicle_penalty(self):
+        return self.total_vehicle_penalty
 
     def calculate_total_penalty(self):
         self.calculate_total_battery_penalty()

@@ -23,6 +23,7 @@ class BatteryEnergyStorageSystem:
     def charge_or_discharge(self, action, power_demand, time_interval):
         if action == 0:
             self.current_power_value = 0.0
+            self.calculated_power_value = 0.0
             self.excess_charging_power = 0.0
             self.excess_discharging_power = 0.0
         elif action > 0:
