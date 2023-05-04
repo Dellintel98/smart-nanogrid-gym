@@ -46,7 +46,7 @@ class BatteryEnergyStorageSystem:
                 # FULL BATTERY CAN OVERCHARGE BUT SOC STAYS THE SAME,
                 # EXCESS ENERGY TRANSFORMS TO HEAT
                 possible_charging_power = ((1.0 - self.current_state_of_charge) * self.max_capacity) / time_interval
-                self.excess_charging_power = charging_power - possible_charging_power
+                self.excess_charging_power = (charging_power - possible_charging_power)*100
             else:
                 self.excess_charging_power = 0.0
 
@@ -69,7 +69,7 @@ class BatteryEnergyStorageSystem:
                 # EMPTY BATTERY CANNOT BE DISCHARGED, THEREFORE REMAINING POWER CANNOT BE CHANGED
                 # FOR THE VALUE LARGER THAN THE AMOUNT BATTERY HAS
                 possible_discharging_power = (self.current_state_of_charge * self.max_capacity) / time_interval
-                self.excess_discharging_power = abs(discharging_power) - possible_discharging_power
+                self.excess_discharging_power = (abs(discharging_power) - possible_discharging_power)*100
                 discharging_power = -possible_discharging_power
             else:
                 self.excess_discharging_power = 0.0

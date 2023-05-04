@@ -1,4 +1,5 @@
 import json
+import random
 
 import numpy as np
 import gym
@@ -61,6 +62,7 @@ class SmartNanogridEnv(gym.Env):
 
         self.timestep = None
         self.info = None
+        self.random_pv_shift_ratio = 1.0
 
         self.grid_energy_per_timestep, self.solar_energy_utilization_per_timestep = None, None
         self.total_cost_per_timestep, self.total_vehicle_penalty_per_timestep = None, None
@@ -136,7 +138,7 @@ class SmartNanogridEnv(gym.Env):
             return float(1)
 
     def step(self, actions):
-        results = self.central_management_system.simulate(self.timestep, actions)
+        results = self.central_management_system.simulate(self.timestep, actions, self.random_pv_shift_ratio)
 
         self.total_cost_per_timestep.append(results['Total cost'])
         self.grid_energy_cost_per_timestep.append(results['Grid energy cost'])
@@ -173,6 +175,8 @@ class SmartNanogridEnv(gym.Env):
         self.simulated_single_day = self.__check_is_single_day_simulated()
         if self.simulated_single_day:
             self.timestep = 0
+            # To simulate different solar days
+            self.random_pv_shift_ratio = random.randint(0, 180) / 100
             self.__save_prediction_results()
 
         reward = -results['Total cost']
@@ -186,7 +190,8 @@ class SmartNanogridEnv(gym.Env):
         min_timesteps_ahead = self.timestep + 1
         max_timesteps_ahead = min_timesteps_ahead + self.NUMBER_OF_HOURS_AHEAD
 
-        results = self.central_management_system.observe(self.timestep, min_timesteps_ahead, max_timesteps_ahead)
+        results = self.central_management_system.observe(self.timestep, min_timesteps_ahead, max_timesteps_ahead,
+                                                         self.random_pv_shift_ratio)
 
         if self.PV_SYSTEM_AVAILABLE_IN_MODEL:
             normalized_disturbances_observation_at_current_timestep = np.array([results['solar_radiation'],
@@ -337,6 +342,8 @@ class SmartNanogridEnv(gym.Env):
         # Todo: Feat: Add reset to all subclasses and to price and pv if different models have different configs for them
 
         self.__load_initial_simulation_values(generate_new_initial_values)
+
+        self.random_pv_shift_ratio = random.randint(0, 180) / 100
 
         return self.__get_observations(), {}
 

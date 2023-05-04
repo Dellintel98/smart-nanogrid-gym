@@ -42,7 +42,7 @@ class CentralManagementSystem:
         else:
             return None
 
-    def observe(self, timestep, min_timesteps_ahead, max_timesteps_ahead):
+    def observe(self, timestep, min_timesteps_ahead, max_timesteps_ahead, random_pv_shift_ratio):
         [departure_times, vehicles_state_of_charge] = self.charging_station.simulate(timestep, self.TIME_INTERVAL)
 
         if self.battery_system:
@@ -55,9 +55,9 @@ class CentralManagementSystem:
                                                                                  max_timesteps_ahead)
 
         if self.pv_system_manager:
-            solar_radiation = self.pv_system_manager.get_normalized_solar_radiation_at_timestep_t(timestep)
+            solar_radiation = self.pv_system_manager.get_normalized_solar_radiation_at_timestep_t(timestep)*random_pv_shift_ratio
             radiation_predictions = self.pv_system_manager.get_normalized_solar_predictions_in_range(min_timesteps_ahead,
-                                                                                                     max_timesteps_ahead)
+                                                                                                     max_timesteps_ahead)*random_pv_shift_ratio
 
             return {
                 'departures': departure_times,
@@ -77,11 +77,11 @@ class CentralManagementSystem:
             'price_predictions': price_predictions
         }
 
-    def simulate(self, timestep, actions):
-        management_results = self.manage_nanogrid(timestep, actions)
+    def simulate(self, timestep, actions, random_pv_shift_ratio):
+        management_results = self.manage_nanogrid(timestep, actions, random_pv_shift_ratio)
         return management_results
 
-    def manage_nanogrid(self, timestep, actions):
+    def manage_nanogrid(self, timestep, actions, random_pv_shift_ratio):
         charger_actions = actions[0:self.NUMBER_OF_CHARGERS]
 
         if self.battery_system:
@@ -95,6 +95,7 @@ class CentralManagementSystem:
 
         if self.pv_system_manager:
             available_solar_power = self.pv_system_manager.get_available_solar_produced_power_at_timestep_t(timestep)
+            available_solar_power = available_solar_power * random_pv_shift_ratio
         else:
             available_solar_power = 0
 

@@ -288,7 +288,7 @@ class ChargingStation:
                 charger_power_values[index] = charger.charge_or_discharge_vehicle(action, current_timestep, time_interval)
             else:
                 charger_power_values[index] = 0
-                charger.reset_info_values()
+                charger.reset_info_values(action)
 
         total_discharging_power = charger_power_values[charger_power_values < 0].sum()
         total_charging_power = charger_power_values[charger_power_values > 0].sum()
@@ -325,6 +325,7 @@ class ChargingStation:
         arrivals = self.arrivals
         excess_charging_powers = self.get_excess_vehicles_charging_power_per_charger()
         excess_discharging_powers = self.get_excess_vehicles_discharging_power_per_charger()
+        charging_nonexistent_vehicles = self.get_charging_non_existent_vehicles()
 
         return {
             'penalty_check_vehicles': vehicles_for_penalty_check,
@@ -332,7 +333,8 @@ class ChargingStation:
             'requested_end_states_of_charge': requested_end_state_of_charge_per_charger,
             'vehicle_arrivals': arrivals,
             'excess_charging_powers': excess_charging_powers,
-            'excess_discharging_powers': excess_discharging_powers
+            'excess_discharging_powers': excess_discharging_powers,
+            'charging_nonexistent_vehicles': charging_nonexistent_vehicles
         }
 
     def get_excess_vehicles_charging_power_per_charger(self):
@@ -340,3 +342,6 @@ class ChargingStation:
 
     def get_excess_vehicles_discharging_power_per_charger(self):
         return [charger.excess_vehicle_discharging_power for charger in self.chargers]
+
+    def get_charging_non_existent_vehicles(self):
+        return [charger.charging_non_existent_vehicle for charger in self.chargers]

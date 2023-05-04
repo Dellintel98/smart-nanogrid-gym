@@ -7,6 +7,7 @@ class Charger:
     def __init__(self, charging_mode):
         self.excess_vehicle_charging_power = 0.0
         self.excess_vehicle_discharging_power = 0.0
+        self.charging_non_existent_vehicle = 0.0
         self.CHARGING_MODE = charging_mode
         self.occupied: bool = False
         self.connected_electric_vehicle: Optional[ElectricVehicle] = None
@@ -50,6 +51,7 @@ class Charger:
             self.excess_vehicle_charging_power = 0.0
 
         # self.calculate_next_vehicle_state_of_charge(timestep, time_interval)
+        self.charging_non_existent_vehicle = 0.0
 
         return self.power_value
 
@@ -72,7 +74,7 @@ class Charger:
                 # FULL EV BATTERY CAN OVERCHARGE BUT SOC STAYS THE SAME,
                 # EXCESS ENERGY TRANSFORMS TO HEAT
                 possible_charging_power = ((1.0 - vehicle_state_of_charge) * vehicle_capacity) / time_interval
-                self.excess_vehicle_charging_power = charging_power - possible_charging_power
+                self.excess_vehicle_charging_power = (charging_power - possible_charging_power)*100
             else:
                 self.excess_vehicle_charging_power = 0.0
 
@@ -115,7 +117,7 @@ class Charger:
             if next_state_of_charge < 0:
                 # EMPTY EV BATTERY CANNOT BE DISCHARGED
                 possible_discharging_power = (vehicle_state_of_charge * vehicle_capacity) / time_interval
-                self.excess_vehicle_discharging_power = abs(discharging_power) - possible_discharging_power
+                self.excess_vehicle_discharging_power = (abs(discharging_power) - possible_discharging_power)*100
                 discharging_power = -possible_discharging_power
             else:
                 self.excess_vehicle_discharging_power = 0.0
@@ -130,7 +132,12 @@ class Charger:
         discharging_power = action * self.connected_electric_vehicle.max_discharging_power * self.connected_electric_vehicle.discharging_efficiency
         return discharging_power
 
-    def reset_info_values(self):
+    def reset_info_values(self, action):
         self.power_value = 0.0
         self.excess_vehicle_charging_power = 0.0
         self.excess_vehicle_discharging_power = 0.0
+
+        if action:
+            self.charging_non_existent_vehicle = abs(action) * 1000
+        else:
+            self.charging_non_existent_vehicle = 0.0

@@ -20,13 +20,15 @@ class Penaliser:
         self.total_penalty = 0.0
 
     def penalise_charging_station_issues(self, timestep, penalty_check_vehicles, requested_end_states_of_charge, states_of_charge,
-                                         excess_charging_powers, excess_discharging_powers, vehicle_arrivals):
+                                         excess_charging_powers, excess_discharging_powers, vehicle_arrivals,
+                                         charging_nonexistent_vehicles):
         self.penalise_unwanted_vehicle_charging(excess_charging_powers)
         self.penalise_unwanted_vehicle_discharging(excess_discharging_powers)
         self.penalise_charging_vehicles_outside_bounds(timestep, penalty_check_vehicles, requested_end_states_of_charge,
-                                                       states_of_charge, vehicle_arrivals)
+                                                       states_of_charge, vehicle_arrivals, charging_nonexistent_vehicles)
 
-    def penalise_charging_vehicles_outside_bounds(self, timestep, penalty_check_vehicles, requested_end_soc, soc, arrivals):
+    def penalise_charging_vehicles_outside_bounds(self, timestep, penalty_check_vehicles, requested_end_soc, soc, arrivals,
+                                                  charging_nonexistent_vehicles):
         insufficiency_penalties = []
         needless_charging_penalties = []
         for vehicle in penalty_check_vehicles:
@@ -34,7 +36,8 @@ class Penaliser:
             requested_vehicle_state_of_charge = self.extract_requested_state_of_charge(vehicle, timestep, arrivals,
                                                                                        requested_end_soc)
 
-            self.penalise_state_of_charge_outside_margin(requested_vehicle_state_of_charge, vehicle_state_of_charge)
+            self.penalise_state_of_charge_outside_margin(requested_vehicle_state_of_charge, vehicle_state_of_charge,
+                                                         charging_nonexistent_vehicles)
 
             insufficiency_penalties.append(self._insufficiently_charged_vehicle_penalty)
             needless_charging_penalties.append(self._needless_vehicle_charging_penalty)
@@ -54,7 +57,7 @@ class Penaliser:
         else:
             return requested_states_of_charge[vehicle, timestep - 1]
 
-    def penalise_state_of_charge_outside_margin(self, requested_soc, current_soc):
+    def penalise_state_of_charge_outside_margin(self, requested_soc, current_soc, charging_nonexistent_vehicles):
         lower_charged_state_margin = self.END_STATE_OF_CHARGE_MARGIN_RATIO * requested_soc
         upper_charged_state_margin = lower_charged_state_margin
 
@@ -62,7 +65,7 @@ class Penaliser:
             upper_charged_state_margin = 0.0
 
         if current_soc < requested_soc - lower_charged_state_margin:
-            self._insufficiently_charged_vehicle_penalty = ((requested_soc - current_soc) * 4) ** 2
+            self._insufficiently_charged_vehicle_penalty = ((requested_soc - current_soc) * 100) ** 2
             self._needless_vehicle_charging_penalty = 0.0
         elif requested_soc + upper_charged_state_margin < current_soc:
             self._insufficiently_charged_vehicle_penalty = 0.0
@@ -71,11 +74,13 @@ class Penaliser:
             self._insufficiently_charged_vehicle_penalty = 0.0
             self._needless_vehicle_charging_penalty = 0.0
 
+        self._needless_vehicle_charging_penalty = self._needless_vehicle_charging_penalty + sum(charging_nonexistent_vehicles)
+
     def penalise_unwanted_vehicle_charging(self, excess_charging_powers):
-        self.excess_vehicles_charging_penalty = sum(excess_charging_powers)
+        self.excess_vehicles_charging_penalty = sum(excess_charging_powers) * 100
 
     def penalise_unwanted_vehicle_discharging(self, excess_discharging_powers):
-        self.excess_vehicles_discharging_penalty = sum(excess_discharging_powers)
+        self.excess_vehicles_discharging_penalty = sum(excess_discharging_powers) * 4
 
     def penalise_battery_issues(self, current_state_of_charge, depth_of_discharge, initial_power_demand,
                                 remaining_power_demand, excess_charging_power, excess_discharging_power):
@@ -85,11 +90,11 @@ class Penaliser:
 
     def penalise_unwanted_battery_charging(self, initial_power, remaining_power, excess_charging_power):
         if 0 <= initial_power < remaining_power:
-            self.needless_battery_charging_penalty = remaining_power - initial_power
+            self.needless_battery_charging_penalty = (remaining_power - initial_power) * 0.0
             self.excess_battery_charging_penalty = 0.0
         elif initial_power <= 0 < remaining_power:
             self.needless_battery_charging_penalty = 0.0
-            self.excess_battery_charging_penalty = remaining_power
+            self.excess_battery_charging_penalty = remaining_power * 0.0
         else:
             self.needless_battery_charging_penalty = 0.0
             self.excess_battery_charging_penalty = 0.0
@@ -98,11 +103,11 @@ class Penaliser:
 
     def penalise_unwanted_battery_discharging(self, initial_power, remaining_power, excess_discharging_power):
         if remaining_power < initial_power <= 0:
-            self.needless_battery_discharging_penalty = initial_power - remaining_power
+            self.needless_battery_discharging_penalty = round(initial_power - remaining_power, 2) * 1000
             self.excess_battery_discharging_penalty = 0.0
         elif remaining_power < 0 <= initial_power:
             self.needless_battery_discharging_penalty = 0.0
-            self.excess_battery_discharging_penalty = -remaining_power
+            self.excess_battery_discharging_penalty = round(-remaining_power, 2) * 1000
         else:
             self.needless_battery_discharging_penalty = 0.0
             self.excess_battery_discharging_penalty = 0.0
@@ -111,7 +116,7 @@ class Penaliser:
 
     def penalise_battery_state_below_depth_of_discharge(self, current_state_of_charge, depth_of_discharge):
         if current_state_of_charge < depth_of_discharge:
-            self.battery_state_of_charge_below_dod_penalty = ((depth_of_discharge - current_state_of_charge) * 2) ** 2
+            self.battery_state_of_charge_below_dod_penalty = ((depth_of_discharge - current_state_of_charge) * 100) ** 2
         else:
             self.battery_state_of_charge_below_dod_penalty = 0.0
 
