@@ -1,12 +1,12 @@
 from typing import Optional
 from smart_nanogrid_gym.utils.electric_vehicle import ElectricVehicle
-from numpy import array, zeros
+from numpy import array, zeros, floor, ceil, sign
 
 
 class Charger:
     def __init__(self, charging_mode):
-        self.excess_vehicle_charging_power = 0.0
-        self.excess_vehicle_discharging_power = 0.0
+        self.vehicle_overcharging_value = 0.0
+        self.vehicle_over_discharging_value = 0.0
         self.charging_non_existent_vehicle = 0.0
         self.CHARGING_MODE = charging_mode
         self.occupied: bool = False
@@ -37,18 +37,18 @@ class Charger:
     def charge_or_discharge_vehicle(self, action, timestep, time_interval):
         if action == 0:
             self.power_value = 0.0
-            self.excess_vehicle_charging_power = 0.0
-            self.excess_vehicle_discharging_power = 0.0
+            self.vehicle_overcharging_value = 0.0
+            self.vehicle_over_discharging_value = 0.0
             if timestep in self.vehicle_arrivals:
                 self.vehicle_state_of_charge[timestep] = self.vehicle_state_of_charge[timestep]
             else:
                 self.vehicle_state_of_charge[timestep] = self.vehicle_state_of_charge[timestep - 1]
         elif action > 0:
             self.power_value = self.charge_vehicle(action, timestep, time_interval)
-            self.excess_vehicle_discharging_power = 0.0
+            self.vehicle_over_discharging_value = 0.0
         else:
             self.power_value = self.discharge_vehicle(action, timestep, time_interval)
-            self.excess_vehicle_charging_power = 0.0
+            self.vehicle_overcharging_value = 0.0
 
         # self.calculate_next_vehicle_state_of_charge(timestep, time_interval)
         self.charging_non_existent_vehicle = 0.0
@@ -68,17 +68,22 @@ class Charger:
 
             state_of_charge_value_change = (charging_power * time_interval) / vehicle_capacity
 
-            next_state_of_charge = vehicle_state_of_charge + state_of_charge_value_change
+            calculated_state_of_charge = vehicle_state_of_charge + state_of_charge_value_change
 
-            if next_state_of_charge > 1.0:
-                # FULL EV BATTERY CAN OVERCHARGE BUT SOC STAYS THE SAME,
-                # EXCESS ENERGY TRANSFORMS TO HEAT
-                possible_charging_power = ((1.0 - vehicle_state_of_charge) * vehicle_capacity) / time_interval
-                self.excess_vehicle_charging_power = (charging_power - possible_charging_power)*100
-            else:
-                self.excess_vehicle_charging_power = 0.0
+            overcharging_flag = floor(0.5 * (1 + sign(calculated_state_of_charge - 1)))
+            self.vehicle_overcharging_value = overcharging_flag * self.connected_electric_vehicle.max_charging_power
+            # NON-CONSTANT PENALTIES TEND TO LEAD TO ALGORITHM STILL BEING IN UNWANTED AREA BUT LOWERING ACTIONS TO MIN
+            # SO THAT THE PENALTY IS MINIMAL!!!
+            # if calculated_state_of_charge > 1.0:
+            #     # FULL EV BATTERY CAN OVERCHARGE BUT SOC STAYS THE SAME,
+            #     # EXCESS ENERGY TRANSFORMS TO HEAT
+            #     possible_charging_power = ((1.0 - vehicle_state_of_charge) * vehicle_capacity) / time_interval
+            #     # self.excess_vehicle_charging_power = (charging_power - possible_charging_power)
+            #     self.vehicle_overcharging_power = round(charging_power - possible_charging_power, 2) * 10
+            # else:
+            #     self.vehicle_overcharging_power = 0.0
 
-            self.vehicle_state_of_charge[timestep] = min(next_state_of_charge, 1.0)
+            self.vehicle_state_of_charge[timestep] = min(calculated_state_of_charge, 1.0)
         else:
             raise ValueError("Error: Wrong charging mode provided!")
 
@@ -112,17 +117,23 @@ class Charger:
                 vehicle_state_of_charge = self.vehicle_state_of_charge[timestep - 1]
 
             state_of_charge_value_change = (discharging_power * time_interval) / vehicle_capacity
-            next_state_of_charge = vehicle_state_of_charge + state_of_charge_value_change
+            calculated_state_of_charge = vehicle_state_of_charge + state_of_charge_value_change
 
-            if next_state_of_charge < 0:
-                # EMPTY EV BATTERY CANNOT BE DISCHARGED
+            over_discharging_flag = ceil(0.5 * (1 + sign(calculated_state_of_charge)))
+            self.vehicle_over_discharging_value = over_discharging_flag * self.connected_electric_vehicle.max_discharging_power
+            # NON-CONSTANT PENALTIES TEND TO LEAD TO ALGORITHM STILL BEING IN UNWANTED AREA BUT LOWERING ACTIONS TO MIN
+            # SO THAT THE PENALTY IS MINIMAL!!!
+            # if calculated_state_of_charge < 0:
+            #     # EMPTY EV BATTERY CANNOT BE DISCHARGED
+            if self.vehicle_over_discharging_value:
                 possible_discharging_power = (vehicle_state_of_charge * vehicle_capacity) / time_interval
-                self.excess_vehicle_discharging_power = (abs(discharging_power) - possible_discharging_power)*100
+            #     # self.vehicle_over_discharging_power = (abs(discharging_power) - possible_discharging_power)
+            #     # self.vehicle_over_discharging_power = round(abs(discharging_power) - possible_discharging_power, 2) * 10
                 discharging_power = -possible_discharging_power
-            else:
-                self.excess_vehicle_discharging_power = 0.0
+            # else:
+            #     self.vehicle_over_discharging_power = 0.0
 
-            self.vehicle_state_of_charge[timestep] = max(0.0, next_state_of_charge)
+            self.vehicle_state_of_charge[timestep] = max(0.0, calculated_state_of_charge)
         else:
             raise ValueError("Error: Wrong discharging mode provided!")
         # Todo: Add returning calculated power value like in battery_system
@@ -134,10 +145,12 @@ class Charger:
 
     def reset_info_values(self, action):
         self.power_value = 0.0
-        self.excess_vehicle_charging_power = 0.0
-        self.excess_vehicle_discharging_power = 0.0
+        self.vehicle_overcharging_value = 0.0
+        self.vehicle_over_discharging_value = 0.0
 
+        # NON-CONSTANT PENALTIES TEND TO LEAD TO ALGORITHM STILL BEING IN UNWANTED AREA BUT LOWERING ACTIONS TO MIN
+        # SO THAT THE PENALTY IS MINIMAL!!!
         if action:
-            self.charging_non_existent_vehicle = abs(action) * 1000
+            self.charging_non_existent_vehicle = 100
         else:
             self.charging_non_existent_vehicle = 0.0

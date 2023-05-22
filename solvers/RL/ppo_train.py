@@ -14,7 +14,7 @@ charging_mode = vehicle_charging_modes[0]
 # Todo: Add prioritisation mode choice, e.g. prioritise selling to grid over charging bess, or the other way around
 vehicle_uncharged_penalty_modes = ['no_penalty', 'on_departure', 'sparse', 'dense']
 # penalty modes: no_penalty, on_departure, sparse, dense
-penalty_mode = vehicle_uncharged_penalty_modes[3]
+penalty_mode = vehicle_uncharged_penalty_modes[2]
 
 time_intervals = ['15min', '30min', '45min', '1h', '2h']
 requested_time_interval = time_intervals[3]
@@ -88,7 +88,7 @@ if not os.path.exists(logdir):
 current_env_configuration = current_env['config']
 env = gym.make('SmartNanogridEnv-v0', **current_env_configuration)
 
-device = 'cuda' if number_of_chargers > 8 else 'cpu'
+device = 'cuda' if number_of_chargers >= 8 else 'cpu'
 model = PPO("MlpPolicy", env, verbose=1, tensorboard_log=logdir, device=device)
 
 number_of_episodes = 850

@@ -28,7 +28,7 @@ class CentralManagementSystem:
         self.accountant = Accountant()
         self.accountant.set_energy_price(current_price_model, experiment_length_in_days, time_interval)
 
-        self.penaliser = Penaliser()
+        self.penaliser = Penaliser(number_of_chargers)
 
     def initialise_battery_system(self, battery_system_available_in_model, charging_mode):
         if battery_system_available_in_model:
@@ -90,6 +90,9 @@ class CentralManagementSystem:
         else:
             battery_action = 0
 
+        if timestep == 0 and self.battery_system:
+            self.battery_system.set_initial_state_of_charge_on_new_day_start()
+
         result = self.charging_station.simulate_vehicle_charging(charger_actions, timestep, self.TIME_INTERVAL)
         self.penaliser.penalise_charging_station_issues(timestep, **self.charging_station.get_info_for_penalisation())
 
@@ -110,10 +113,12 @@ class CentralManagementSystem:
         total_cost = self.accountant.calculate_total_cost(additional_cost=total_penalty)
 
         if self.battery_system:
+            initial_battery_soc = self.battery_system.get_initial_state_of_charge()
             battery_soc = self.battery_system.get_state_of_charge()
             battery_power_value = self.battery_system.get_used_power_value()
             battery_calculated_power_value = self.battery_system.get_calculated_power_value()
         else:
+            initial_battery_soc = 0.0
             battery_soc = 0.0
             battery_power_value = 0.0
             battery_calculated_power_value = 0.0
@@ -129,15 +134,14 @@ class CentralManagementSystem:
             'Total penalty': total_penalty,
             'Total battery penalty': self.penaliser.get_total_battery_penalty(),
             'Battery soc below dod penalty': self.penaliser.get_battery_state_of_charge_below_dod_penalty(),
-            'Needlessly charged battery penalty': self.penaliser.get_needlessly_charged_battery_penalty(),
-            'Needlessly discharged battery penalty': self.penaliser.get_needlessly_discharged_battery_penalty(),
-            'Excessively charged battery penalty': self.penaliser.get_excessively_charged_battery_penalty(),
-            'Excessively discharged battery penalty': self.penaliser.get_excessively_discharged_battery_penalty(),
+            'Battery overcharging penalty': self.penaliser.get_battery_overcharging_penalty(),
+            'Battery over discharging penalty': self.penaliser.get_battery_over_discharging_penalty(),
+            'Low resource utilisation penalty': self.penaliser.get_low_resource_utilisation_penalty(),
             'Total vehicle penalty': self.penaliser.get_total_vehicle_penalty(),
             'Insufficiently charged vehicles penalty': self.penaliser.get_insufficiently_charged_vehicles_penalty(),
             'Needlessly charged vehicles penalty': self.penaliser.get_needlessly_charged_vehicles_penalty(),
-            'Excessively charged vehicles penalty': self.penaliser.get_excessively_charged_vehicles_penalty(),
-            'Excessively discharged vehicles penalty': self.penaliser.get_excessively_discharged_vehicles_penalty(),
+            'Overcharged vehicles penalty': self.penaliser.get_overcharged_vehicles_penalty(),
+            'Over discharged vehicles penalty': self.penaliser.get_over_discharged_vehicles_penalty(),
             'Battery action': battery_action,
             'Charger actions': charger_actions.tolist(),
             'Total charging power': result['Total charging power'],
@@ -146,6 +150,8 @@ class CentralManagementSystem:
             'Battery power value': battery_power_value,
             'Battery calculated power value': battery_calculated_power_value,
             'Battery state of charge': battery_soc,
+            'Initial battery state of charge': initial_battery_soc,
+            'DisCharging nonexistent vehicles penalty': self.penaliser.get_charging_nonexistent_vehicles_penalty()
         }
 
     def calculate_grid_power(self, power_demand, available_solar_power, battery_action):
@@ -167,8 +173,13 @@ class CentralManagementSystem:
                                                                              remaining_power_demand,
                                                                              self.TIME_INTERVAL)
 
-            self.penaliser.penalise_battery_issues(initial_power_demand=initial_power_demand,
-                                                   remaining_power_demand=remaining_power_demand,
-                                                   **self.battery_system.get_system_info())
+            self.penaliser.penalise_nanogrid_resource_issues(solar_power=available_solar_power,
+                                                             vehicle_power_demand=power_demand,
+                                                             grid_power=remaining_power_demand,
+                                                             **self.battery_system.get_system_info())
+
+            # self.penaliser.penalise_nanogrid_resource_issues(initial_power_demand=initial_power_demand,
+            #                                                  remaining_power_demand=remaining_power_demand,
+            #                                                  **self.battery_system.get_system_info())
 
         return remaining_power_demand

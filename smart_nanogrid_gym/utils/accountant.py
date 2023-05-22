@@ -32,7 +32,7 @@ class Accountant:
         return self.grid_energy_cost
 
     def calculate_total_cost(self, additional_cost):
-        self.total_cost = self.grid_energy_cost + additional_cost
+        self.total_cost = 0.75 * abs(self.grid_energy_cost) + additional_cost
         return self.total_cost
 
     def get_energy_price_at_time_t(self, t):

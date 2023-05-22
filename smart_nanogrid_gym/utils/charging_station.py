@@ -323,8 +323,8 @@ class ChargingStation:
         vehicles_state_of_charge = self.get_vehicles_state_of_charge()
         requested_end_state_of_charge_per_charger = self.get_requested_end_state_of_charge_for_all_chargers()
         arrivals = self.arrivals
-        excess_charging_powers = self.get_excess_vehicles_charging_power_per_charger()
-        excess_discharging_powers = self.get_excess_vehicles_discharging_power_per_charger()
+        overcharging_values = self.get_vehicles_overcharging_value_per_charger()
+        over_discharging_values = self.get_vehicles_over_discharging_value_per_charger()
         charging_nonexistent_vehicles = self.get_charging_non_existent_vehicles()
 
         return {
@@ -332,16 +332,16 @@ class ChargingStation:
             'states_of_charge': vehicles_state_of_charge,
             'requested_end_states_of_charge': requested_end_state_of_charge_per_charger,
             'vehicle_arrivals': arrivals,
-            'excess_charging_powers': excess_charging_powers,
-            'excess_discharging_powers': excess_discharging_powers,
+            'overcharging_values': overcharging_values,
+            'over_discharging_values': over_discharging_values,
             'charging_nonexistent_vehicles': charging_nonexistent_vehicles
         }
 
-    def get_excess_vehicles_charging_power_per_charger(self):
-        return [charger.excess_vehicle_charging_power for charger in self.chargers]
+    def get_vehicles_overcharging_value_per_charger(self):
+        return [charger.vehicle_overcharging_value for charger in self.chargers]
 
-    def get_excess_vehicles_discharging_power_per_charger(self):
-        return [charger.excess_vehicle_discharging_power for charger in self.chargers]
+    def get_vehicles_over_discharging_value_per_charger(self):
+        return [charger.vehicle_over_discharging_value for charger in self.chargers]
 
     def get_charging_non_existent_vehicles(self):
         return [charger.charging_non_existent_vehicle for charger in self.chargers]

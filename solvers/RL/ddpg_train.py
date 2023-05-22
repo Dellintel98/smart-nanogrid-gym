@@ -12,54 +12,87 @@ from stable_baselines3.common.evaluation import evaluate_policy
 from stable_baselines3.common.env_checker import check_env
 import time
 
-number_of_chargers = 8
+import smart_nanogrid_gym
+
+import gym
+import os
+
+from stable_baselines3 import PPO
+import time
+
+
+number_of_chargers = 4
+vehicle_charging_modes = ['bounded']
+# charging modes: bounded [-1, 1]*max_power;
+#        {add later maybe: cc-cv-bounded...}
+charging_mode = vehicle_charging_modes[0]
+# Todo: Add prioritisation mode choice, e.g. prioritise selling to grid over charging bess, or the other way around
+vehicle_uncharged_penalty_modes = ['no_penalty', 'on_departure', 'sparse', 'dense']
+# penalty modes: no_penalty, on_departure, sparse, dense
+penalty_mode = vehicle_uncharged_penalty_modes[2]
+
+time_intervals = ['15min', '30min', '45min', '1h', '2h']
+requested_time_interval = time_intervals[3]
+
 env_variants = [
     {
-        'variant_name': 'basic-',
+        'variant_name': 'basic',
         'config': {
             'vehicle_to_everything': False,
             'pv_system_available_in_model': False,
             'battery_system_available_in_model': False,
             'environment_mode': 'training',
             'algorithm_used': 'DDPG',
-            'number_of_chargers': number_of_chargers
+            'number_of_chargers': number_of_chargers,
+            'charging_mode': charging_mode,
+            'vehicle_uncharged_penalty_mode': penalty_mode,
+            'time_interval': requested_time_interval
         }},
     {
-        'variant_name': 'b-pv-',
+        'variant_name': 'b-pv',
         'config': {
             'vehicle_to_everything': False,
             'pv_system_available_in_model': True,
             'battery_system_available_in_model': True,
             'environment_mode': 'training',
             'algorithm_used': 'DDPG',
-            'number_of_chargers': number_of_chargers
+            'number_of_chargers': number_of_chargers,
+            'charging_mode': charging_mode,
+            'vehicle_uncharged_penalty_mode': penalty_mode,
+            'time_interval': requested_time_interval
         }},
     {
-        'variant_name': 'v2x-',
+        'variant_name': 'v2x',
         'config': {
             'vehicle_to_everything': True,
             'pv_system_available_in_model': False,
             'battery_system_available_in_model': False,
             'environment_mode': 'training',
             'algorithm_used': 'DDPG',
-            'number_of_chargers': number_of_chargers
+            'number_of_chargers': number_of_chargers,
+            'charging_mode': charging_mode,
+            'vehicle_uncharged_penalty_mode': penalty_mode,
+            'time_interval': requested_time_interval
         }},
     {
-        'variant_name': 'v2x-b-pv-',
+        'variant_name': 'v2x-b-pv',
         'config': {
             'vehicle_to_everything': True,
             'pv_system_available_in_model': True,
             'battery_system_available_in_model': True,
             'environment_mode': 'training',
             'algorithm_used': 'DDPG',
-            'number_of_chargers': number_of_chargers
+            'number_of_chargers': number_of_chargers,
+            'charging_mode': charging_mode,
+            'vehicle_uncharged_penalty_mode': penalty_mode,
+            'time_interval': requested_time_interval
         }}
 ]
 current_env = env_variants[1]
 current_env_name = current_env['variant_name']
 
-models_dir = f"models/DDPG-{current_env_name}-simpler-8-departure"
-logdir = f"logs/DDPG-{current_env_name}-simpler-8-departure"
+models_dir = f"models/DDPG-{current_env_name}-{charging_mode}-{penalty_mode}-{number_of_chargers}ch-{requested_time_interval}"
+logdir = f"logs/DDPG-{current_env_name}-{charging_mode}-{penalty_mode}-{number_of_chargers}ch-{requested_time_interval}"
 
 if not os.path.exists(models_dir):
     os.makedirs(models_dir)
@@ -77,13 +110,14 @@ n_actions = env.action_space.shape[-1]
 param_noise = None
 action_noise = OrnsteinUhlenbeckActionNoise(mean=np.zeros(n_actions), sigma=float(0.5) * np.ones(n_actions))
 
-device = 'cuda' if number_of_chargers >= 8 else 'cpu'
+device = 'cuda' if number_of_chargers >= 4 else 'cpu'
 model = DDPG(MlpPolicy, env, verbose=1, action_noise=action_noise, tensorboard_log=logdir, device=device)
 
 number_of_episodes = 850
 timesteps_per_episode = 24
 timesteps = number_of_episodes * timesteps_per_episode
 training_epochs = 50
+
 start = time.time()
 for epoch in range(training_epochs):
     model.learn(total_timesteps=timesteps, reset_num_timesteps=False, tb_log_name="DDPG")
